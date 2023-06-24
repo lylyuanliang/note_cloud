@@ -7,4 +7,4 @@ services:
     ports:
       - 1521:1521
     volumes:
-      - /mnt/d/file_save/docker_volumes/oracle/helowin/:/home/oracle/app/oracle/oradata/helowin/
+      - /mnt/d/file_save/docker/docker_volumes/oracle/helowin/:/home/oracle/app/oracle/oradata/helowin/
