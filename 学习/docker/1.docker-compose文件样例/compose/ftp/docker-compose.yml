@@ -4,7 +4,7 @@ services:
     image: "fauria/vsftpd"
     container_name: vsftp
     volumes:
-      - /mnt/d/file_save/docker_volumes/ftp:/home/vsftpd
+      - /mnt/d/file_save/docker/docker_volumes/ftp:/home/vsftpd
     ports:
     - "20:20"
     - "21:21"
