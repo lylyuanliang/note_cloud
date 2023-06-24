@@ -1,0 +1,17 @@
+version: '3'
+services:
+  vsftpd:
+    image: "fauria/vsftpd"
+    container_name: vsftp
+    volumes:
+      - /mnt/d/file_save/docker_volumes/ftp:/home/vsftpd
+    ports:
+    - "20:20"
+    - "21:21"
+    - "21100-21110:21100-21110"
+    environment:
+    - FTP_USER=liurl
+    - FTP_PASS=liurl
+    - PASV_ADDRESS=127.0.0.1
+    - PASV_MIN_PORT=21100
+    - PASV_MAX_PORT=21110

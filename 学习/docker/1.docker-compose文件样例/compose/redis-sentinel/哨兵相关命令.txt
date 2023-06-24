@@ -1,0 +1,19 @@
+验证
+1 Master/Slave副本集
+进入Master容器，确认两个Slave容器已经连接。
+redis-cli
+auth liurl
+info replication
+2.Redis Sentinel 进入 Sentinel容器
+redis-cli -p 26379
+sentinel master mymaster
+
+
+相关链接
+https://cloud.tencent.com/developer/article/1615281
+https://zhuanlan.zhihu.com/p/415328735
+
+
+添加路由
+route add 172.19.0.0 mask 255.255.255.0 10.0.75.2
+https://www.yinxiang.com/everhub/note/2f425959-97eb-4641-8262-9517d86790b8

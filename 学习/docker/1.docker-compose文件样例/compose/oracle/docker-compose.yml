@@ -1,0 +1,15 @@
+version: '3.1'
+services:
+  master:
+    image: sath89/oracle-12c
+    container_name: oracle
+    privileged: true
+    ports:
+      - 8888:8080
+      - 1521:1521
+    volumes:
+      - /mnt/d/file_save/docker_volumes/oracle_12c/data/:/u01/app/oracle
+    environment:
+      - DBCA_TOTAL_MEMORY=16192
+      - TZ=Asia/Shanghai
+      - LANG=en_US.UTF-8    

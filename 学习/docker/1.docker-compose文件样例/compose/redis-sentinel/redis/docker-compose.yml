@@ -1,0 +1,24 @@
+version: '3'
+services:
+  master:
+    image: redis:6.0.6
+    container_name: redis-master
+    command: redis-server --requirepass liurl  --masterauth liurl
+    ports:
+      - 6380:6379
+  slave1:
+    image: redis:6.0.6
+    container_name: redis-slave-1
+    ports:
+      - 6381:6379
+    command:  redis-server --slaveof redis-master 6379 --requirepass liurl --masterauth liurl
+  slave2:
+    image: redis:6.0.6
+    container_name: redis-slave-2
+    ports:
+      - 6382:6379
+    command: redis-server --slaveof redis-master 6379 --requirepass liurl --masterauth liurl
+networks:
+  default:
+    external:
+      name: redis_default

@@ -1,0 +1,10 @@
+version: '3.1'
+services:
+  master:
+    image: registry.cn-hangzhou.aliyuncs.com/helowin/oracle_11g
+    container_name: oracle
+    privileged: true
+    ports:
+      - 1521:1521
+    volumes:
+      - /mnt/d/file_save/docker_volumes/oracle/helowin/:/home/oracle/app/oracle/oradata/helowin/
