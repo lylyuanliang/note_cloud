@@ -5,7 +5,7 @@ services:
     container_name: portainer
     ports:
       - "9000:9000"
-    volumes:
-      - /mnt/d/file_save/docker/docker_volumes/portainer/data:/data
+    # volumes:
+      #- /mnt/d/file_save/docker/docker_volumes/portainer/data:/data
       # - /mnt/d/file_save/docker/docker_volumes/portainer/var/run/docker.sock:/var/run/docker.sock
     privileged: true
