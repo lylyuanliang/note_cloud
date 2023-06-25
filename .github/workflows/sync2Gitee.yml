@@ -20,7 +20,7 @@ jobs:
           dst_token: ${{secrets.GITEE_TOKEN}}
           # 表示单一仓库同步
           # static_list: "learn-typescript"
-          # force_update 为 true 表示启用 git push -f 强制同步
+          # force_update 为 true 表示启用 git push -f 强制同步 
           force_update: true
           # debug 为 true 表示启用 debug 开关，会显示所有执行命令 
           debug: true
