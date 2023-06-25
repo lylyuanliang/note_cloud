@@ -1,4 +1,4 @@
-name: syncToGitee
+name: sync2Gitee
 on:
   push:
     branches:
