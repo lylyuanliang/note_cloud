@@ -2,7 +2,7 @@ name: sync2Gitee
 on:
   push:
     branches:
-      - gh-pages
+      - main
 jobs:
   repo-sync:
     runs-on: ubuntu-latest
