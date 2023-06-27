@@ -18,3 +18,6 @@ services:
       KAFKA_CREATE_TOPICS: "test:1:1"
     volumes:
       - /mnt/d/file_save/docker/docker_volumes/kafka/docker.sock:/var/run/docker.sock
+
+networks:
+    liurl_net:
