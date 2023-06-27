@@ -3,6 +3,8 @@ services:
   vsftpd:
     image: "fauria/vsftpd"
     container_name: vsftp
+    networks:
+      - liurl_net
     volumes:
       - /mnt/d/file_save/docker/docker_volumes/ftp:/home/vsftpd
     ports:
@@ -15,3 +17,9 @@ services:
     - PASV_ADDRESS=127.0.0.1
     - PASV_MIN_PORT=21100
     - PASV_MAX_PORT=21110
+
+
+networks:
+  liurl_net:  # 网络名
+    name: liurl_net
+    driver: bridge
