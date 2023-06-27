@@ -2,6 +2,8 @@ version: '3'
 services:
   zookeeper:
     container_name: zookeeper
+    networks:
+      - liurl_net
     image: wurstmeister/zookeeper
     ports:
       - "2181:2181"
