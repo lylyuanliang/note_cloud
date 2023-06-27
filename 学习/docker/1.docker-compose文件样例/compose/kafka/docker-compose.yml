@@ -22,4 +22,6 @@ services:
       - /mnt/d/file_save/docker/docker_volumes/kafka/docker.sock:/var/run/docker.sock
 
 networks:
-    liurl_net:
+  liurl_net:  # 网络名
+    name: liurl_net
+    driver: bridge
