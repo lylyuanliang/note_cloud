@@ -3,6 +3,8 @@ services:
   mysql:
     image: mysql:5.7.16
     container_name: mysql
+    networks:
+      - liurl_net
     ports:
       - 3306:3306
     environment:
@@ -16,3 +18,9 @@ services:
       --sql-mode="STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO"
     volumes:
       - /mnt/d/file_save/docker/docker_volumes/mysql5/datadir:/var/lib/mysql
+
+
+networks:
+  liurl_net:  # 网络名
+    name: liurl_net
+    driver: bridge
