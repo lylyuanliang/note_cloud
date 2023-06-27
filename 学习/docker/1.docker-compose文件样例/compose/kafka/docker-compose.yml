@@ -8,6 +8,8 @@ services:
   kafka:
     container_name: kafka
     image: wurstmeister/kafka
+    networks:
+      - liurl_net
     ports:
       - "9092:9092"
     environment:
