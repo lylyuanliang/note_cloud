@@ -13,3 +13,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
       - LANG=en_US.UTF-8
+    networks:
+      - liurl_net
+networks:
+  liurl_net:
+    external:
+      name: liurl_net

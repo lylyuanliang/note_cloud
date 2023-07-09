@@ -8,6 +8,8 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel1.conf:/usr/local/etc/redis/sentinel.conf
+    networks:
+      - liurl_net
   sentinel2:
     image: redis:6.0.6
     container_name: redis-sentinel-2
@@ -16,6 +18,8 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel2.conf:/usr/local/etc/redis/sentinel.conf
+    networks:
+      - liurl_net
   sentinel3:
     image: redis:6.0.6
     container_name: redis-sentinel-3
@@ -24,7 +28,9 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel3.conf:/usr/local/etc/redis/sentinel.conf
+    networks:
+      - liurl_net
 networks:
-  default:
+  liurl_net:
     external:
-      name: redis_default
+      name: liurl_net
