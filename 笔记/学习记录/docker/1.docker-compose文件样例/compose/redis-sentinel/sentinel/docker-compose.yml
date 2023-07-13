@@ -32,5 +32,5 @@ services:
       - liurl_net
 networks:
   liurl_net:
-    external:
-      name: liurl_net
+    external: true
+    name: liurl_net

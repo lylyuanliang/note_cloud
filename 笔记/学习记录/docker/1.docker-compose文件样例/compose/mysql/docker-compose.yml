@@ -21,6 +21,6 @@ services:
 
 
 networks:
-  liurl_net:  # 网络名
+  liurl_net:
+    external: true
     name: liurl_net
-    driver: bridge
