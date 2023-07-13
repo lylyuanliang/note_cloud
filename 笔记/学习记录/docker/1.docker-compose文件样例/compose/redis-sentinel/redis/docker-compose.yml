@@ -3,7 +3,10 @@ services:
   master:
     image: redis:6.0.6
     container_name: redis-master
-    command: redis-server --requirepass liurl  --masterauth liurl
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/conf/redis.conf:/etc/redis/redis.conf
+      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/data:/data
     ports:
       - 6380:6379
     networks:
@@ -13,7 +16,10 @@ services:
     container_name: redis-slave-1
     ports:
       - 6381:6379
-    command:  redis-server --slaveof redis-master 6379 --requirepass liurl --masterauth liurl
+    command:  redis-server /etc/redis/redis.conf
+    volumes:
+      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/conf/redis.conf:/etc/redis/redis.conf
+      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/data:/data
     networks:
       - liurl_net
   slave2:
@@ -21,7 +27,10 @@ services:
     container_name: redis-slave-2
     ports:
       - 6382:6379
-    command: redis-server --slaveof redis-master 6379 --requirepass liurl --masterauth liurl
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/conf/redis.conf:/etc/redis/redis.conf
+      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/data:/data
     networks:
       - liurl_net
 networks:
