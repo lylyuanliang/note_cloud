@@ -1,6 +1,6 @@
 version: '3'
 services:
-  master:
+  redis-master:
     image: redis:6.0.6
     container_name: redis-master
     command: redis-server /etc/redis/redis.conf
@@ -11,7 +11,7 @@ services:
       - 6380:6379
     networks:
       - liurl_net
-  slave1:
+  redis-slave1:
     image: redis:6.0.6
     container_name: redis-slave-1
     ports:
@@ -22,7 +22,7 @@ services:
       - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/data:/data
     networks:
       - liurl_net
-  slave2:
+  redis-slave2:
     image: redis:6.0.6
     container_name: redis-slave-2
     ports:
