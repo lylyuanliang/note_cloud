@@ -9,6 +9,7 @@ services:
       - /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/data:/data
     ports:
       - 6380:6379
+    privileged: true
     networks:
       - liurl_net
   redis-slave1:
@@ -16,7 +17,8 @@ services:
     container_name: redis-slave-1
     ports:
       - 6381:6379
-    command: redis-server /etc/redis/redis.conf --slaveof master 6379
+    privileged: true
+    command: redis-server /etc/redis/redis.conf
     volumes:
       - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/conf/redis.conf:/etc/redis/redis.conf
       - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/data:/data
@@ -27,7 +29,8 @@ services:
     container_name: redis-slave-2
     ports:
       - 6382:6379
-    command: redis-server /etc/redis/redis.conf --slaveof master 6379
+    privileged: true
+    command: redis-server /etc/redis/redis.conf
     volumes:
       - /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/conf/redis.conf:/etc/redis/redis.conf
       - /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/data:/data
