@@ -1,0 +1,21 @@
+version: '3.1'
+services:
+  redis:
+    container_name: redis
+    image: redis:6.0.6
+    ports:
+      - 6379:6379
+    command: redis-server /etc/redis.conf
+    volumes:
+      - D:/file_save/docker/docker_volumes/redis/data/:/data
+      - D:/file_save/docker/docker_volumes/redis/conf/redis.conf:/etc/redis.conf
+    privileged: true
+    environment:
+      - TZ=Asia/Shanghai
+      - LANG=en_US.UTF-8
+    networks:
+      - liurl_net
+networks:
+  liurl_net:
+    external: true
+    name: liurl_net
