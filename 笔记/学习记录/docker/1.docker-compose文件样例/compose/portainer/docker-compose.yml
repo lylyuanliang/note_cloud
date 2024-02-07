@@ -1,11 +1,22 @@
-version: "3"
+version: '3'
+
 services:
   portainer:
-    image: portainer/portainer:latest
+    restart: always
+    image: portainer/portainer-ce
     container_name: portainer
     ports:
       - "9000:9000"
-    # volumes:
-      #- /mnt/d/file_save/docker/docker_volumes/portainer/data:/data
-      # - /mnt/d/file_save/docker/docker_volumes/portainer/var/run/docker.sock:/var/run/docker.sock
-    privileged: true
+      - "8000:8000"
+      - "9443:9443"
+    volumes:
+      # /var/run/docker.sock是你本地运行的docker的sock地址，否则进进入之后无法显示对应的local环境，也就是本地环境
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    environment:
+      - TZ=Asia/Shanghai
+      # the follow env do not work
+      - admin-password=123456789qwe
+
+volumes:
+  portainer_data:
