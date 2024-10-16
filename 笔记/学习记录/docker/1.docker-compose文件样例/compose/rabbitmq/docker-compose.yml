@@ -1,0 +1,37 @@
+#  http://localhost:15672/ 进入RabbitMQ Management 页面
+version: '3.1'
+services:
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    privileged: true
+    # restart: always
+    # 节点名 rabbit@rabbitserver，不然会去容器ID
+    hostname: rabbitserver
+    environment:
+      # 默认虚拟机名
+      RABBITMQ_DEFAULT_VHOST: admin_vhost
+      # 用户名
+      RABBITMQ_DEFAULT_USER: root
+      # 密码
+      RABBITMQ_DEFAULT_PASS: devops666
+      # 指定自定义插件目录
+      RABBITMQ_PLUGINS_DIR: '/plugins:/myplugins'
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - /mnt/d/file_save/docker/docker_volumes/rabbitmq/myplugins:/myplugins
+    networks:
+      - liurl_net
+
+# 定义内部卷
+volumes:
+  rabbitmq_data:  
+
+
+networks:
+  liurl_net:
+    external: true
+    name: liurl_net
