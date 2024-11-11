@@ -1,4 +1,3 @@
-version: '3.1'
 services:
   redis:
     container_name: redis
@@ -7,14 +6,19 @@ services:
       - 6379:6379
     command: redis-server /etc/redis.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/data/:/data
-      - /mnt/d/file_save/docker/docker_volumes/redis/conf/redis.conf:/etc/redis.conf
+      - redis_data:/data
+      - ./redis.conf:/etc/redis.conf
     privileged: true
     environment:
       - TZ=Asia/Shanghai
       - LANG=en_US.UTF-8
     networks:
       - liurl_net
+
+# 定义内部卷
+volumes:
+  redis_data:  
+
 networks:
   liurl_net:
     external: true
