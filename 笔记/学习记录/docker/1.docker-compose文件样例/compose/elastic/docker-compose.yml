@@ -9,7 +9,8 @@ services:
       - 9300:9300
     environment:
       #- ES_JAVA_OPTS= -Xms2g -Xmx2g
-      ELASTIC_PASSWORD: "elastic" # elastic账号密码
+      # elastic账号密码
+      ELASTIC_PASSWORD: "elastic" 
     volumes:
       - ./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - es_data:/usr/share/elasticsearch/data
