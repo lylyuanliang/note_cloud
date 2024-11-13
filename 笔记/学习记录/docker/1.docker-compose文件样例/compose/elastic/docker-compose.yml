@@ -1,0 +1,41 @@
+version: '3.3'
+services:
+  elasticsearch:
+    restart: always
+    image: elasticsearch:7.17.0
+    container_name: elasticsearch
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      #- ES_JAVA_OPTS= -Xms2g -Xmx2g
+      ELASTIC_PASSWORD: "elastic" # elastic账号密码
+    volumes:
+      - ./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - es_data:/usr/share/elasticsearch/data
+      - es_plugin:/usr/share/elasticsearch/plugins
+    networks:
+      - liurl_net
+
+  kibana:
+    restart: always
+    image: kibana:7.17.0
+    container_name: kibana
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./config/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - liurl_net
+
+# 定义内部卷
+volumes:
+  es_data:
+  es_plugin:
+
+networks:
+  liurl_net:
+    external: true
+    name: liurl_net
