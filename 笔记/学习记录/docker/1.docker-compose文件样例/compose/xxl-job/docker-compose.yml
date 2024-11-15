@@ -8,7 +8,7 @@ services:
     container_name: xxl-job-admin
     volumes:
       # 日志目录映射到主机目录
-      - xxl_job_jogs:/data/applogs
+      - xxl_job_logs:/data/applogs
     ports:
       # 端口映射
       - "8800:8800"
@@ -25,10 +25,10 @@ services:
       --xxl.job.accessToken='  #代码里面需要指定的token, 同时数据库使用docker容器服务名mysql
 
 # 定义内部卷
-# docker volume inspect xxl_job_jogs
+# docker volume inspect xxl_job_logs
 volumes:
-  xxl_job_jogs:  
-    name: xxl_job_jogs
+  xxl_job_logs:  
+    name: xxl_job_logs
 
 networks:
   liurl_net:
