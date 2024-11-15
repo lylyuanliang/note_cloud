@@ -22,6 +22,7 @@ services:
 # 定义内部卷
 volumes:
   mysql5_data:  
+    name: mysql5_data
 
 networks:
   liurl_net:  # 网络名

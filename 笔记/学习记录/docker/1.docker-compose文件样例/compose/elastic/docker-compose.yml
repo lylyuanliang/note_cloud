@@ -33,8 +33,10 @@ services:
 
 # 定义内部卷
 volumes:
-  es_data:
-  es_plugin:
+  es_data:  
+    name: es_data
+  es_plugin:  
+    name: es_plugin
 
 networks:
   liurl_net:

@@ -19,4 +19,5 @@ services:
       - admin-password=123456789qwe
 
 volumes:
-  portainer_data:
+  portainer_data:  
+    name: portainer_data

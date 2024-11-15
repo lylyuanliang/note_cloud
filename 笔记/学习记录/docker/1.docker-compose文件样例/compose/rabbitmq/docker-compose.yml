@@ -28,7 +28,8 @@ services:
 
 # 定义内部卷
 volumes:
-  rabbitmq_data:  
+  rabbitmq_data: 
+    name: rabbitmq_data
 
 
 networks:
