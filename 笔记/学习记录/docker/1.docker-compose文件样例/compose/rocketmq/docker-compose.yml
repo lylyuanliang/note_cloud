@@ -1,0 +1,55 @@
+version: '3.8'
+services:
+  rocketmq-namesrv:
+    image: apache/rocketmq:4.9.4
+    container_name: rocketmq-namesrv
+    networks:
+      - liurl_net
+    ports:
+      - 9876:9876
+    command: sh mqnamesrv
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:9876"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+
+  rocketmq-broker:
+    image: apache/rocketmq:4.9.4
+    container_name: rocketmq-broker
+    ports:
+      - 10911:10911
+      - 10909:10909
+    volumes:
+      - rocket_mq_log:/root/logs
+      - rocket_mq_store:/root/store
+    environment:
+      - NAMESRV_ADDR=rocketmq-namesrv:9876
+    command: sh mqbroker -n rocketmq-namesrv:9876
+    networks:
+      - liurl_net
+    depends_on:
+      - rocketmq-namesrv
+
+  rmqconsole:
+    image: styletang/rocketmq-console-ng
+    container_name: rmqconsole
+    ports:
+      - 18090:8080
+    environment:
+      JAVA_OPTS: "-Drocketmq.namesrv.addr=rocketmq-namesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false"
+    depends_on:
+      - rocketmq-namesrv
+    networks:
+      - liurl_net
+
+networks:
+  liurl_net:  # 网络名
+    name: liurl_net
+
+# 定义内部卷
+volumes:
+  rocket_mq_log:  
+    name: rocket_mq_log
+  rocket_mq_store:  
+    name: rocket_mq_store
