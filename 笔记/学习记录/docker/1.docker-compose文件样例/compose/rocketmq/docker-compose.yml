@@ -7,25 +7,27 @@ services:
       - liurl_net
     ports:
       - 9876:9876
+    environment:
+      #内存分配
+      JAVA_OPT_EXT: "-server -Xms512m -Xmx512m"
+    volumes:
+      - namesrv_log:/root/logs
     command: sh mqnamesrv
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:9876"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
 
   rocketmq-broker:
     image: apache/rocketmq:4.9.4
     container_name: rocketmq-broker
     ports:
-      - 10911:10911
       - 10909:10909
+      - 10911:10911
     volumes:
       - rocket_mq_log:/root/logs
       - rocket_mq_store:/root/store
+      - ./conf/broker.conf:/opt/rocketmq/conf/broker.conf
+    command: sh mqbroker  -c /opt/rocketmq/conf/broker.conf
     environment:
-      - NAMESRV_ADDR=rocketmq-namesrv:9876
-    command: sh mqbroker -n rocketmq-namesrv:9876
+      NAMESRV_ADDR: "rocketmq-namesrv:9876"
+      JAVA_OPT_EXT: "-server -Xms512m -Xmx512m -Xmn512m"
     networks:
       - liurl_net
     depends_on:
@@ -38,6 +40,7 @@ services:
       - 18090:8080
     environment:
       JAVA_OPTS: "-Drocketmq.namesrv.addr=rocketmq-namesrv:9876 -Dcom.rocketmq.sendMessageWithVIPChannel=false"
+      NAMESRV_ADDR: rocketmq-namesrv:9876
     depends_on:
       - rocketmq-namesrv
     networks:
@@ -49,6 +52,8 @@ networks:
 
 # 定义内部卷
 volumes:
+  namesrv_log:
+    name: namesrv_log
   rocket_mq_log:  
     name: rocket_mq_log
   rocket_mq_store:  
