@@ -9,3 +9,5 @@
 ### git命令相关
 
 [部分命令记录](./1.git_command.md)
+
+### [修改历史commit信息](./2.修改历史commit信息.md)
