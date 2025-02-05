@@ -1,0 +1,32 @@
+version: '3.3'
+
+services:
+
+  mysql-db:
+    # 指定容器的名称
+    container_name: mysql8     
+    networks:
+      - liurl_net
+    # 指定镜像和版本
+    image: mysql:8.0                   
+    ports:
+      - "3309:3306"
+    restart: always
+    # 容器日志大小配置
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '5g'
+    environment:
+      # 配置root密码
+      MYSQL_ROOT_PASSWORD: xj2022
+    volumes:
+      # 挂载数据目录
+      - "/mnt/d/file_save/docker/docker_volumes/mysql8/data:/var/lib/mysql" 
+      # 挂载配置文件目录
+      - "/mnt/d/file_save/docker/docker_volumes/mysql8/config:/etc/mysql/conf.d" 
+
+networks:
+  liurl_net:
+    external: true
+    name: liurl_net

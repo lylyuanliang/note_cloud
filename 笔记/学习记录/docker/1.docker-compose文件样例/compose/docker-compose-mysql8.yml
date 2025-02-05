@@ -2,7 +2,9 @@ version: '3'
 services:
   mysql:
     image: mysql
-    container_name: mysql
+    container_name: mysql8
+    privileged: true
+    restart: always
     volumes:
       - /mnt/d/file_save/docker/docker_volumes/mysql/datadir:/var/lib/mysql
       - /mnt/d/file_save/docker/docker_volumes/mysql/conf/:/etc/mysql/
