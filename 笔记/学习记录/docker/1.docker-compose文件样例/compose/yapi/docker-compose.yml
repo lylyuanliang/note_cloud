@@ -1,0 +1,60 @@
+services:
+  mongodb:
+    container_name: mongodb
+    image: mongo:latest
+    # restart: always
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=123456
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - liurl_net
+    #  增加启动参数，--auth，表示连接 mongodb 需要用户名和密码
+    command:
+      - "--auth"
+
+  yapi:
+    image: jayfong/yapi:latest
+    container_name: yapi
+    # restart: always
+    ports:
+      - 3000:3000
+    environment:
+      # 随便设置一个账号（账号是邮箱的格式）
+      - YAPI_ADMIN_ACCOUNT=liurl@qq.com
+      # 设置账号的密码
+      - YAPI_ADMIN_PASSWORD=admin
+      # 禁用注册功能  这样的话就只有上面这个用户可以登陆，如果有其他用户需求，将此注释或者直接去掉即可
+      # - YAPI_CLOSE_REGISTER=true
+      # 设置连接 mongdb 的服务器地址，可以使用容器内部的 mongodb 服务名称
+      - YAPI_DB_SERVERNAME=mongodb
+      # mongoDB的连接信息
+      - YAPI_DB_PORT=27017
+      - YAPI_DB_DATABASE=yapidb
+      - YAPI_DB_USER=admin
+      - YAPI_DB_PASS=123456
+      - YAPI_DB_AUTH_SOURCE=admin
+      # - YAPI_DB_CONNECT_STRING="mongodb://admin:123456@mongodb:27017/yapidb?authSource=admin"
+      # 禁用发送邮件功能
+      - YAPI_MAIL_ENABLE=false
+      # 禁用 LDAP 登录功能
+      - YAPI_LDAP_LOGIN_ENABLE=false
+      # 使用插件(为空表示不使用)
+      - YAPI_PLUGINS=[]
+    networks:
+      - liurl_net
+    depends_on:
+      - mongodb
+
+# 定义内部卷
+# docker volume inspect mongodb_data
+volumes:
+  mongodb_data:  
+    name: mongodb_data
+
+networks:
+  liurl_net:
+    name: liurl_net
