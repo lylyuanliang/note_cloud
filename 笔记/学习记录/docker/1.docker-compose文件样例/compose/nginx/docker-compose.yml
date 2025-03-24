@@ -1,0 +1,25 @@
+services:
+  nginx:
+    image: nginx:1.24.0
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./conf.d:/etc/nginx/conf.d
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - nginx_logs:/var/log/nginx
+      - ./html:/usr/share/nginx/html
+    restart: always
+    networks:
+      - liurl_net
+
+# 定义命名卷
+# 使用 docker volume inspect nginx_logs 查看卷详情
+volumes:
+  nginx_logs:
+    name: nginx_logs
+
+networks:
+  liurl_net:
+    name: liurl_net
