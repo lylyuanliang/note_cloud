@@ -7,7 +7,7 @@ services:
       - 26379:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/sentinel/sentinel1.conf:/usr/local/etc/redis/sentinel.conf
+      - ./sentinel1.conf:/usr/local/etc/redis/sentinel.conf
     networks:
       - liurl_net
   sentinel2:
@@ -17,7 +17,7 @@ services:
     - 26380:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/sentinel/sentinel2.conf:/usr/local/etc/redis/sentinel.conf
+      - ./sentinel2.conf:/usr/local/etc/redis/sentinel.conf
     networks:
       - liurl_net
   sentinel3:
@@ -27,10 +27,15 @@ services:
       - 26381:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/sentinel/sentinel3.conf:/usr/local/etc/redis/sentinel.conf
+      - ./sentinel3.conf:/usr/local/etc/redis/sentinel.conf
     networks:
       - liurl_net
 networks:
-  liurl_net:
-    external: true
+  liurl_net:  # 网络名
     name: liurl_net
+    driver: bridge
+
+# 定义内部卷
+volumes:
+  redis_data_sentinel: 
+    name: redis_data_sentinel

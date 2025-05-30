@@ -1,23 +1,25 @@
 #!/bin/sh
 
+# 哨兵构建, 直接运行这个脚本就行可以了, 然后
+
 # 注意文件的编码, 使用set ff查看, 如果显示fileformat=doc则表示是windows, 则需要修改 set fileformat=unix
 # 1.创建挂载目录
 # 1.1 redis配置挂载目录
-mkdir -p /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/conf
-mkdir -p /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/conf
-mkdir -p /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/conf
+mkdir -p ./redis/6380/conf
+mkdir -p ./redis/6381/conf
+mkdir -p ./redis/6382/conf
 # 1.2 sentinel配置挂载目录
-mkdir -p /mnt/d/file_save/docker/docker_volumes/redis/sentinel/
+mkdir -p ./sentinel/
 
 # 2.复制配置文件
 # 2.1 复制redis配置文件
 # 2.1.1 复制master配置
-cp ./redis/redis.conf /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/conf/redis.conf
+cp ./redis/redis.conf ./redis/6380/conf/redis.conf
 # 2.1.2 复制slave配置
-cp ./redis/redis_slave.conf /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/conf/redis.conf
-cp ./redis/redis_slave.conf /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/conf/redis.conf
+cp ./redis/redis_slave.conf ./redis/6381/conf/redis.conf
+cp ./redis/redis_slave.conf ./redis/6382/conf/redis.conf
 # 2.2 复制sentinel配置文件, 复制三份, 和sentinel一一对应
-for i in `seq 3`; do cp "./sentinel/sentinel.conf" "/mnt/d/file_save/docker/docker_volumes/redis/sentinel/sentinel$i.conf"; done
+for i in `seq 3`; do cp "./sentinel/sentinel.conf" "./sentinel/sentinel$i.conf"; done
 
 # 创建主从redis
 docker-compose -f ./redis/docker-compose.yml up -d
