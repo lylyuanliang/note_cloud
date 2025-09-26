@@ -5,8 +5,8 @@ services:
     container_name: redis-master
     command: redis-server /etc/redis/redis.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/conf/redis.conf:/etc/redis/redis.conf
-      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6380/data:/data
+      - ./6380/conf/redis.conf:/etc/redis/redis.conf
+      - redis_data_6380:/data
     ports:
       - 6380:6379
     privileged: true
@@ -20,8 +20,8 @@ services:
     privileged: true
     command: redis-server /etc/redis/redis.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/conf/redis.conf:/etc/redis/redis.conf
-      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6381/data:/data
+      - ./6381/conf/redis.conf:/etc/redis/redis.conf
+      - redis_data_6381:/data
     networks:
       - liurl_net
   redis-slave2:
@@ -32,11 +32,19 @@ services:
     privileged: true
     command: redis-server /etc/redis/redis.conf
     volumes:
-      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/conf/redis.conf:/etc/redis/redis.conf
-      - /mnt/d/file_save/docker/docker_volumes/redis/redis/6382/data:/data
+      - ./6382/conf/redis.conf:/etc/redis/redis.conf
+      - redis_data_6382:/data
     networks:
       - liurl_net
 networks:
   liurl_net:
     external: true
     name: liurl_net
+
+volumes:
+  redis_data_6380: 
+    name: redis_data_6380
+  redis_data_6381: 
+    name: redis_data_6381
+  redis_data_6382: 
+    name: redis_data_6382

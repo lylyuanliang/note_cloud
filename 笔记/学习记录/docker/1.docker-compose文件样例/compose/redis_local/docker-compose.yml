@@ -21,6 +21,6 @@ volumes:
     name: redis_data
 
 networks:
-  liurl_net:
-    external: true
+  liurl_net:  # 网络名
     name: liurl_net
+    driver: bridge
