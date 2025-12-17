@@ -1,0 +1,7 @@
+services:
+  jrebel-license-active-server:
+    image: yuxiaoyao520/jrebel-license-active-server:latest
+    container_name: jrebel-license-active-server
+    command: ./jrebel-license-active-server --port=5555 --exportSchema=https --exportHost=jrebel.domain.com
+    ports:
+      - "5555:5555"
