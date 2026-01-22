@@ -4,6 +4,7 @@
 
 - **tracker**: FastDFS调度服务器，端口 22122
 - **storage**: FastDFS存储服务器，端口 23000（存储服务）、8888（HTTP访问）
+- **web-manager**: FastDFS Web管理界面，端口 3000
 
 ## 快速开始
 
@@ -30,36 +31,68 @@ docker logs fastdfs_tracker
 docker logs fastdfs_storage
 ```
 
-### 4. 测试文件上传
+### 4. 访问Web管理界面
 
-可以使用FastDFS客户端工具测试，或者通过HTTP接口访问已上传的文件：
+启动服务后，打开浏览器访问：
+
+**Web管理界面**：`http://localhost:3000`
+
+在Web界面中可以：
+- 📤 上传文件
+- 📋 查看文件列表
+- 🔍 通过文件ID管理文件
+- ⬇️ 下载文件
+- 🗑️ 删除文件（单个或批量）
+- 📊 查看存储统计信息
+
+### 5. 直接访问文件
+
+通过HTTP接口直接访问已上传的文件：
 
 访问地址：`http://localhost:8888/group1/M00/00/00/xxxxx`
 
-### 5. 停止服务
+### 6. 停止服务
 
 ```bash
 docker-compose down
 ```
 
+## Web管理界面功能
+
+### 主要功能
+
+1. **文件上传**
+   - 支持拖拽上传
+   - 支持点击选择文件
+   - 最大支持 100MB 单文件
+   - 实时显示上传进度
+
+2. **文件管理**
+   - 通过文件ID添加文件到管理列表
+   - 查看文件详细信息（ID、大小、时间等）
+   - 文件预览和下载
+   - 单个文件删除
+   - 批量文件删除（用于清理存储空间）
+
+3. **存储统计**
+   - 显示已管理文件数量
+   - 显示总存储大小
+
+### 使用技巧
+
+- **通过文件ID管理**：如果你知道文件的FastDFS ID（如 `group1/M00/00/00/xxxxx`），可以直接输入ID添加到管理列表
+- **批量删除**：勾选多个文件后，点击"批量删除"可以一次性清理多个文件
+- **文件访问**：点击文件URL可以直接在浏览器中打开文件
+
 ## 数据持久化
 
-- tracker数据目录：`./tracker_data`
-- storage数据目录：`./storage_data`
+- tracker数据：使用命名卷 `fastdfs_tracker_data`
+- storage数据：使用命名卷 `fastdfs_storage_data`
+- Web管理界面：文件列表存储在浏览器本地（刷新页面会清空，但文件仍在FastDFS中）
 
-## 可视化管理工具
+## 命令行工具（可选）
 
-### FastDFS 可视化工具分析
-
-**重要说明**：传统FastDFS（Tracker+Storage架构）**没有官方的Web管理界面**，主要通过以下方式管理：
-
-#### 1. HTTP访问（已配置）
-- Storage服务已集成Nginx，可通过HTTP直接访问文件
-- 访问地址：`http://localhost:8888/group1/M00/00/00/xxxxx`
-- 这是最常用的文件访问方式
-
-#### 2. 命令行监控工具
-进入容器使用FastDFS内置的监控命令：
+如果需要使用命令行工具：
 
 ```bash
 # 进入tracker容器
@@ -68,27 +101,6 @@ docker exec -it fastdfs_tracker bash
 # 查看storage注册状态
 fdfs_monitor /etc/fdfs/client.conf
 
-# 查看storage列表
-fdfs_monitor /etc/fdfs/client.conf list
-```
-
-#### 3. 第三方可视化工具（可选）
-
-**注意**：目前市面上针对传统FastDFS的Web管理工具较少，主要有：
-
-- **FastDFS-WebUI**（第三方开发，GitHub可搜索）
-- **自研Web管理界面**：基于FastDFS客户端API开发
-
-如果需要可视化界面，建议：
-1. 使用HTTP接口（端口8888）直接访问文件
-2. 通过客户端API开发自定义管理界面
-3. 使用命令行工具进行监控和管理
-
-#### 4. 文件上传测试
-
-可以使用FastDFS客户端工具或通过编程语言SDK进行文件上传：
-
-```bash
 # 进入storage容器测试上传
 docker exec -it fastdfs_storage bash
 cd /var/fdfs
@@ -99,6 +111,29 @@ fdfs_upload_file /etc/fdfs/client.conf test.txt
 ## 注意事项
 
 1. 首次启动时，storage会自动连接到tracker
-2. 确保端口 22122、23000、8888 未被占用
-3. 如需修改配置，可以进入容器修改 `/etc/fdfs/` 目录下的配置文件
-4. FastDFS本身没有官方Web管理界面，主要通过HTTP接口和命令行工具管理
+2. 确保端口 22122、23000、8888、3000 未被占用
+3. Web管理界面启动需要一些时间（构建镜像），请耐心等待
+4. 文件列表存储在浏览器本地，刷新页面会清空列表（但文件仍在FastDFS中）
+5. 如需修改配置，可以进入容器修改 `/etc/fdfs/` 目录下的配置文件
+6. 删除文件操作不可恢复，请谨慎操作
+
+## 版本管理建议
+
+**重要**：为了确保部署的稳定性和可重复性，建议：
+
+1. **使用具体版本号**：避免使用 `latest` 标签，使用具体的版本号（如 `mysql:5.7.16`）
+2. **定期检查更新**：定期检查镜像更新，并在测试环境验证后再更新生产环境
+3. **版本锁定**：对于关键服务，建议锁定到特定版本，避免自动更新导致的不兼容问题
+4. **查看可用版本**：
+   - Docker Hub：访问 `https://hub.docker.com/r/<镜像名>/tags`
+   - 命令行：`docker search <镜像名>` 或 `docker pull <镜像名> --all-tags`
+
+**当前配置说明**：
+- `delron/fastdfs:latest` - 如果该镜像没有版本标签，建议定期检查并考虑使用镜像digest固定版本
+- `node:18-alpine` - 已使用相对稳定的版本标签，建议定期检查更新
+
+## 技术栈
+
+- **后端**：Node.js + Express + fdfs-client
+- **前端**：原生HTML + JavaScript（无框架依赖）
+- **容器化**：Docker + Docker Compose

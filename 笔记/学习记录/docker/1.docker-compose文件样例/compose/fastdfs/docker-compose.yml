@@ -1,7 +1,10 @@
-version: '3'
 services:
   # FastDFS Tracker服务
   tracker:
+    # 注意：delron/fastdfs 镜像没有版本标签，只有 latest
+    # 如需固定版本，可使用镜像digest：docker pull delron/fastdfs:latest
+    # docker inspect delron/fastdfs:latest | grep -i digest
+    # 然后使用：image: delron/fastdfs@sha256:xxxxx
     image: delron/fastdfs:latest
     container_name: fastdfs_tracker
     networks:
@@ -17,6 +20,10 @@ services:
 
   # FastDFS Storage服务
   storage:
+    # 注意：delron/fastdfs 镜像没有版本标签，只有 latest
+    # 如需固定版本，可使用镜像digest：docker pull delron/fastdfs:latest
+    # docker inspect delron/fastdfs:latest | grep -i digest
+    # 然后使用：image: delron/fastdfs@sha256:xxxxx
     image: delron/fastdfs:latest
     container_name: fastdfs_storage
     networks:
@@ -34,12 +41,37 @@ services:
       - tracker
     restart: unless-stopped
 
+  # FastDFS Web管理界面
+  web-manager:
+    build:
+      context: ./web-manager
+      dockerfile: Dockerfile
+    container_name: fastdfs_web_manager
+    networks:
+      - liurl_net
+    volumes:
+      - web_manager_data:/app/data
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - TRACKER_HOST=tracker
+      - TRACKER_PORT=22122
+      - STORAGE_HTTP_URL=http://storage:8888
+      - TZ=Asia/Shanghai
+    depends_on:
+      - tracker
+      - storage
+    restart: unless-stopped
+
 # 定义命名卷
 volumes:
   tracker_data:
     name: fastdfs_tracker_data
   storage_data:
     name: fastdfs_storage_data
+  web_manager_data:
+    name: fastdfs_web_manager_data
 
 networks:
   liurl_net:  # 网络名

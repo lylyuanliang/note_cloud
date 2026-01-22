@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastDFS 文件管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9fa;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            background: #e9ecef;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e7f3ff;
+            border-color: #667eea;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .file-url {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: monospace;
+            color: #667eea;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 5px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-url:hover {
+            background: #f8f9fa;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .file-manager {
+            margin-top: 20px;
+        }
+
+        .file-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .file-input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .batch-actions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .batch-actions.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📁 FastDFS 文件管理系统</h1>
+            <p>文件上传、查看、删除一站式管理</p>
+        </div>
+
+        <div class="content">
+            <!-- 消息提示 -->
+            <div id="message" class="message"></div>
+
+            <!-- 统计信息 -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalFiles">0</div>
+                    <div class="stat-label">已管理文件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalSize">0 KB</div>
+                    <div class="stat-label">总存储大小</div>
+                </div>
+            </div>
+
+            <!-- 文件上传区域 -->
+            <div class="section">
+                <h2 class="section-title">📤 上传文件</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📎</div>
+                    <p>点击选择文件或拖拽文件到此处</p>
+                    <p style="font-size: 12px; color: #666; margin-top: 10px;">支持单个文件上传，最大 100MB</p>
+                    <input type="file" id="fileInput" class="file-input" multiple>
+                </div>
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- 文件管理区域 -->
+            <div class="section">
+                <h2 class="section-title">📋 文件管理</h2>
+                
+                <!-- 批量操作 -->
+                <div class="batch-actions" id="batchActions">
+                    <div>
+                        <span id="selectedCount">0</span> 个文件已选中
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" onclick="batchDelete()">批量删除</button>
+                        <button class="btn" onclick="clearSelection()">取消选择</button>
+                    </div>
+                </div>
+
+                <!-- 文件输入（用于通过文件ID管理） -->
+                <div class="file-input-group">
+                    <input type="text" id="fileIdInput" placeholder="输入文件ID（如：group1/M00/00/00/xxx）进行管理">
+                    <button class="btn" onclick="addFileById()">添加</button>
+                    <button class="btn" onclick="loadFilesFromStorage()">刷新列表</button>
+                    <button class="btn" onclick="clearFileList()" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">清空列表</button>
+                </div>
+
+                <div class="file-list" id="fileList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <p>暂无文件，请上传文件或输入文件ID进行管理</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let files = [];
+
+        // 从服务器加载文件列表
+        async function loadFilesFromServer() {
+            try {
+                const response = await fetch(`${API_BASE}/api/files`);
+                const data = await response.json();
+                if (data.success) {
+                    files = data.files || [];
+                    console.log(`从服务器加载了 ${files.length} 个文件`);
+                    renderFileList();
+                    updateStats();
+                } else {
+                    console.error('加载文件列表失败:', data.message);
+                    files = [];
+                }
+            } catch (e) {
+                console.error('加载文件列表失败:', e);
+                files = [];
+            }
+        }
+
+        // 保存文件列表到服务器
+        async function saveFilesToServer() {
+            try {
+                const response = await fetch(`${API_BASE}/api/files`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ files })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    console.log(`已保存 ${files.length} 个文件到服务器`);
+                } else {
+                    console.error('保存文件列表失败:', data.message);
+                }
+            } catch (e) {
+                console.error('保存文件列表失败:', e);
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initUpload();
+            checkHealth();
+            loadFilesFromServer(); // 页面加载时从服务器恢复文件列表
+        });
+
+        // 健康检查
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                const data = await response.json();
+                if (data.success) {
+                    console.log('服务连接正常', data);
+                    if (!data.fastdfsConnected) {
+                        console.warn('FastDFS连接可能有问题');
+                    }
+                } else {
+                    showMessage('服务健康检查失败: ' + (data.message || '未知错误'), 'error');
+                }
+            } catch (error) {
+                console.error('健康检查失败:', error);
+                showMessage('无法连接到服务器，请检查：1) docker compose ps 查看服务状态 2) docker logs fastdfs_web_manager 查看日志', 'error');
+            }
+        }
+
+        // 初始化上传功能
+        function initUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    uploadFile(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    uploadFile(e.target.files[0]);
+                }
+            });
+        }
+
+        // 上传文件
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            
+            progressBar.style.display = 'block';
+            progressFill.style.width = '0%';
+
+            try {
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressFill.style.width = percent + '%';
+                    }
+                });
+
+                xhr.addEventListener('load', async () => {
+                    progressBar.style.display = 'none';
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                                if (response.success) {
+                                    showMessage('文件上传成功！', 'success');
+                                    addFileToList(response.data);
+                                    // 服务器已自动保存文件列表，这里只需要刷新显示
+                                    loadFilesFromServer(); // 从服务器重新加载，确保同步
+                                    document.getElementById('fileInput').value = '';
+                                } else {
+                                showMessage(response.message || '上传失败', 'error');
+                            }
+                        } catch (e) {
+                            console.error('解析响应失败:', e, xhr.responseText);
+                            showMessage('服务器响应格式错误', 'error');
+                        }
+                    } else {
+                        let errorMsg = '上传失败，请重试';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            errorMsg = response.message || errorMsg;
+                        } catch (e) {
+                            errorMsg = `上传失败 (HTTP ${xhr.status})`;
+                        }
+                        showMessage(errorMsg, 'error');
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    progressBar.style.display = 'none';
+                    showMessage('上传失败，无法连接到服务器。请检查：1) 后端服务是否运行 2) 端口3000是否可访问', 'error');
+                });
+
+                xhr.addEventListener('timeout', () => {
+                    progressBar.style.display = 'none';
+                    showMessage('上传超时，请检查网络连接或文件大小', 'error');
+                });
+
+                xhr.open('POST', `${API_BASE}/api/upload`);
+                xhr.send(formData);
+            } catch (error) {
+                progressBar.style.display = 'none';
+                showMessage('上传失败：' + error.message, 'error');
+            }
+        }
+
+        // 通过文件ID添加文件
+        async function addFileById() {
+            const fileId = document.getElementById('fileIdInput').value.trim();
+            if (!fileId) {
+                showMessage('请输入文件ID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/file/info/${encodeURIComponent(fileId)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    addFileToList(data.data);
+                    // 服务器已自动保存文件列表，这里只需要刷新显示
+                    loadFilesFromServer(); // 从服务器重新加载，确保同步
+                    document.getElementById('fileIdInput').value = '';
+                    showMessage('文件添加成功！', 'success');
+                } else {
+                    showMessage(data.message || '获取文件信息失败', 'error');
+                }
+            } catch (error) {
+                showMessage('操作失败：' + error.message, 'error');
+            }
+        }
+
+        // 添加文件到列表
+        function addFileToList(fileData) {
+            // 检查文件是否已存在（避免重复添加）
+            const existingIndex = files.findIndex(f => f.fileId === (fileData.fileId || fileData.url));
+            if (existingIndex >= 0) {
+                console.log('文件已存在，更新信息');
+                // 更新现有文件信息
+                files[existingIndex] = {
+                    ...files[existingIndex],
+                    fileName: fileData.fileName || files[existingIndex].fileName,
+                    url: fileData.url || files[existingIndex].url,
+                    downloadUrl: fileData.downloadUrl || files[existingIndex].downloadUrl,
+                    size: fileData.size || files[existingIndex].size,
+                    timestamp: fileData.timestamp || files[existingIndex].timestamp
+                };
+            } else {
+                const file = {
+                    id: fileData.fileId || fileData.url,
+                    fileId: fileData.fileId || fileData.url,
+                    fileName: fileData.fileName || fileData.fileId || '未知文件',
+                    url: fileData.url,
+                    downloadUrl: fileData.downloadUrl,
+                    size: fileData.size || 0,
+                    timestamp: fileData.timestamp || Date.now(),
+                    selected: false
+                };
+                files.push(file);
+            }
+
+            renderFileList();
+            updateStats();
+            saveFilesToServer(); // 保存到服务器
+        }
+
+        // 渲染文件列表
+        function renderFileList() {
+            const fileList = document.getElementById('fileList');
+            
+            if (files.length === 0) {
+                fileList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <p>暂无文件，请上传文件或输入文件ID进行管理</p>
+                    </div>
+                `;
+                return;
+            }
+
+            fileList.innerHTML = files.map((file, index) => `
+                <div class="file-item">
+                    <div class="checkbox-group">
+                        <input type="checkbox" ${file.selected ? 'checked' : ''} 
+                               onchange="toggleFileSelection(${index})">
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${escapeHtml(file.fileName)}</div>
+                        <div class="file-meta">
+                            ID: ${escapeHtml(file.fileId)} | 
+                            大小: ${formatSize(file.size)} | 
+                            时间: ${formatDate(file.timestamp)}
+                        </div>
+                        <a href="${file.url}" target="_blank" class="file-url">${file.url}</a>
+                    </div>
+                    <div class="file-actions">
+                        <button class="btn" onclick="downloadFile('${file.fileId}')">下载</button>
+                        <button class="btn btn-danger" onclick="deleteFile('${file.fileId}', ${index})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+
+            updateBatchActions();
+        }
+
+        // 切换文件选择
+        function toggleFileSelection(index) {
+            files[index].selected = !files[index].selected;
+            updateBatchActions();
+        }
+
+        // 更新批量操作
+        function updateBatchActions() {
+            const selectedCount = files.filter(f => f.selected).length;
+            const batchActions = document.getElementById('batchActions');
+            const selectedCountEl = document.getElementById('selectedCount');
+            
+            if (selectedCount > 0) {
+                batchActions.classList.add('show');
+                selectedCountEl.textContent = selectedCount;
+            } else {
+                batchActions.classList.remove('show');
+            }
+        }
+
+        // 清除选择
+        function clearSelection() {
+            files.forEach(f => f.selected = false);
+            renderFileList();
+        }
+
+        // 清空文件列表（用于清理服务器存储）
+        async function clearFileList() {
+            if (confirm('确定要清空文件列表吗？这不会删除FastDFS中的文件，只是清空管理列表。')) {
+                files = [];
+                await saveFilesToServer();
+                renderFileList();
+                updateStats();
+                showMessage('文件列表已清空', 'success');
+            }
+        }
+
+        // 下载文件
+        function downloadFile(fileId) {
+            window.open(`${API_BASE}/api/download/${encodeURIComponent(fileId)}`, '_blank');
+        }
+
+        // 删除文件
+        async function deleteFile(fileId, index) {
+            if (!confirm('确定要删除这个文件吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/file/${encodeURIComponent(fileId)}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 服务器已自动更新文件列表，重新加载
+                    loadFilesFromServer();
+                    showMessage('文件删除成功！', 'success');
+                } else {
+                    showMessage(data.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('删除失败：' + error.message, 'error');
+            }
+        }
+
+        // 批量删除
+        async function batchDelete() {
+            const selectedFiles = files.filter(f => f.selected);
+            if (selectedFiles.length === 0) {
+                showMessage('请选择要删除的文件', 'error');
+                return;
+            }
+
+            if (!confirm(`确定要删除选中的 ${selectedFiles.length} 个文件吗？`)) {
+                return;
+            }
+
+            try {
+                const fileIds = selectedFiles.map(f => f.fileId);
+                const response = await fetch(`${API_BASE}/api/files/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ fileIds })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 服务器已自动更新文件列表，重新加载
+                    loadFilesFromServer();
+                    showMessage(`成功删除 ${data.deletedCount || data.results.filter(r => r.success).length} 个文件`, 'success');
+                } else {
+                    showMessage(data.message || '批量删除失败', 'error');
+                }
+            } catch (error) {
+                showMessage('批量删除失败：' + error.message, 'error');
+            }
+        }
+
+        // 加载文件（刷新）- 从服务器重新加载
+        function loadFiles() {
+            loadFilesFromServer();
+            showMessage('文件列表已刷新', 'success');
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('totalFiles').textContent = files.length;
+            const totalSize = files.reduce((sum, f) => sum + (f.size || 0), 0);
+            document.getElementById('totalSize').textContent = formatSize(totalSize);
+        }
+
+        // 显示消息
+        function showMessage(message, type = 'success') {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = message;
+            messageEl.className = `message ${type} show`;
+            setTimeout(() => {
+                messageEl.classList.remove('show');
+            }, 3000);
+        }
+
+        // 格式化文件大小
+        function formatSize(bytes) {
+            if (!bytes) return '0 KB';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // 格式化日期
+        function formatDate(timestamp) {
+            if (!timestamp) return '未知';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN');
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
