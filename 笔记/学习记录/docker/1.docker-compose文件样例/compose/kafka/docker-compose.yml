@@ -16,7 +16,7 @@ services:
     networks:
       - liurl_net
     volumes: 
-        - /mnt/d/file_save/docker/docker_volumes/kafka/docker.sock:/var/run/docker.sock
+        - kafka_sock_data:/var/run/docker.sock
     ports:
       - "9092:9092"
     environment:
@@ -43,6 +43,11 @@ services:
     ports:  
       ## 暴露端口 9000这个端口冲突太多
       - "9009:9000"                                 
+
+# 定义命名卷
+volumes:
+  kafka_sock_data:  
+    name: kafka_sock_data
 
 networks:
   liurl_net:  # 网络名

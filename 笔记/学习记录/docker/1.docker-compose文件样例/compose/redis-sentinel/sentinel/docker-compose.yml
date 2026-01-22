@@ -35,7 +35,7 @@ networks:
     name: liurl_net
     driver: bridge
 
-# 定义内部卷
+# 定义命名卷
 volumes:
   redis_data_sentinel: 
     name: redis_data_sentinel

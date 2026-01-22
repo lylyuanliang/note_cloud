@@ -50,7 +50,7 @@ networks:
   liurl_net:  # 网络名
     name: liurl_net
 
-# 定义内部卷
+# 定义命名卷
 volumes:
   namesrv_log:
     name: namesrv_log

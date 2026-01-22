@@ -31,7 +31,7 @@ services:
     networks:
       - liurl_net
 
-# 定义内部卷
+# 定义命名卷
 volumes:
   es_data:  
     name: es_data

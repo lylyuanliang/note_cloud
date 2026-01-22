@@ -19,7 +19,7 @@ services:
     volumes:
       - mysql5_data:/var/lib/mysql
 
-# 定义内部卷
+# 定义命名卷
 volumes:
   mysql5_data:  
     name: mysql5_data

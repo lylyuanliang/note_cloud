@@ -15,7 +15,7 @@ services:
     networks:
       - liurl_net
 
-# 定义内部卷
+# 定义命名卷
 volumes:
   redis_data: 
     name: redis_data

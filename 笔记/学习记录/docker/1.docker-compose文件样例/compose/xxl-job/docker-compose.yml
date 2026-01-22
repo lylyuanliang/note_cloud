@@ -25,7 +25,7 @@ services:
         --xxl.job.accessToken=
       # 注意：accessToken 为空表示不需要认证，生产环境建议设置复杂的 token
 
-# 定义内部卷
+# 定义命名卷
 # docker volume inspect xxl_job_logs
 volumes:
   xxl_job_logs:  

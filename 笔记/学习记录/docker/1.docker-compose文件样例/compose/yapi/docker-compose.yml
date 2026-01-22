@@ -49,7 +49,7 @@ services:
     depends_on:
       - mongodb
 
-# 定义内部卷
+# 定义命名卷
 # docker volume inspect mongodb_data
 volumes:
   mongodb_data:  

@@ -1,6 +1,6 @@
 ### 1.[Cassandra](./compose/Cassandra/)
 
-待补充.
+[docker-compose](./compose/Cassandra/docker-compose.yml)
 
 ### 2.[FTP](./compose/ftp/)
 
@@ -55,3 +55,7 @@ compose文件
 [哨兵启动](./compose/redis-sentinel/sentinel-start.sh)
 
 [哨兵停止](./compose/redis-sentinel/sentinel-stop.sh)
+
+### 9.[fastdfs](./compose/fastdfs/)
+
+[docker-compose](./compose/fastdfs/docker-compose.yml)
