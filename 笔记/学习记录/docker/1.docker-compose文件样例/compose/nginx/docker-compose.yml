@@ -21,5 +21,6 @@ volumes:
     name: nginx_logs
 
 networks:
-  liurl_net:
+  liurl_net:  # 网络名
     name: liurl_net
+    driver: bridge
