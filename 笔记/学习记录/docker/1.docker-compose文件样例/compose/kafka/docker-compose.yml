@@ -1,4 +1,3 @@
-version: '3.5'
 services:
   zookeeper:
     ## 镜像
@@ -9,11 +8,13 @@ services:
     ports:
       ## 对外暴露的端口号
       - "2181:2181"
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "sh", "-c", "echo ruok | nc localhost 2181"]
+      test: ["CMD-SHELL", "echo ruok | nc 127.0.0.1 2181 | grep imok"]
       interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 20
+      start_period: 20s
   kafka:
     ## 镜像
     image: wurstmeister/kafka       
@@ -27,6 +28,7 @@ services:
         - kafka_sock_data:/var/run/docker.sock
     ports:
       - "9092:9092"
+    restart: unless-stopped
     environment:
       ## 修改:宿主机IP
       KAFKA_ADVERTISED_HOST_NAME: kafka
@@ -54,6 +56,7 @@ services:
     ports:  
       ## 暴露端口 9000这个端口冲突太多
       - "9009:9000"                                 
+    restart: unless-stopped
 
 # 定义命名卷
 volumes:
