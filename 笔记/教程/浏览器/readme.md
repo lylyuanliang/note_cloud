@@ -1,3 +1,7 @@
-### 1. [chrome](./chrome/)
+# 浏览器相关
 
-#### 1.1 [chrome插件安装问题](./chrome/1.chrome插件安装问题.md)
+这里记录浏览器和插件安装、配置、排障问题。
+
+### 1. [chrome](./chrome/readme.md)
+
+> Chrome 浏览器相关教程，目前主要记录插件安装问题。

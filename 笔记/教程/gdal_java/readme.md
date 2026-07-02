@@ -1,6 +1,7 @@
-# 2 gdal_java
+# GDAL Java相关
 
-## 2.1 [gdal环境部署](./1.gdal安装.md)
+这里记录 Windows 开发环境下 GDAL Java 依赖安装和集成配置。
 
-> 主要包括windows环境下(开发环境)gdal环境的集成
->
+### 1. [gdal环境部署](./1.gdal安装.md)
+
+> 记录 GDAL 安装、环境变量配置和 Java 项目集成方式。
