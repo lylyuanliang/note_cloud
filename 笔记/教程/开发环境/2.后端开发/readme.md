@@ -8,3 +8,7 @@
 
 用于整理 MySQL、Redis、Kafka、Nacos、Nginx、Canal 等后端中间件在麒麟 V10 上的部署教程。
 
+### 1.2 [持续集成](./持续集成/readme.md)
+
+用于整理 Jenkins、流水线、自动构建、自动发布、回滚和备份相关教程。
+
