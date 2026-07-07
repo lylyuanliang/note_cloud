@@ -1,0 +1,15 @@
+services:
+  note-viewer:
+    build: .
+    container_name: note-viewer
+    ports:
+      - "8088:8080"
+    volumes:
+      - ..:/workspace:ro
+    environment:
+      - REPO_ROOT=/workspace
+      - CONTENT_ROOT=/workspace/笔记
+      - PORT=8080
+      - PUBLIC_BASE_PATH=/
+      - WATCH_USE_POLLING=false
+    restart: unless-stopped
