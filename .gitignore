@@ -1,5 +1,6 @@
 .worktrees/
 worktrees/
+.superpowers/
 
 node_modules/
 note-viewer/node_modules/
