@@ -1,13 +1,12 @@
 import { Router } from "express";
-import type { ViewerConfig } from "../../shared/types";
-import { buildPortalData } from "../services/scanRepository";
+import type { RepositoryStore } from "../services/repositoryStore";
 
-export function createPortalRouter(config: ViewerConfig) {
+export function createPortalRouter(store: RepositoryStore) {
   const router = Router();
 
   router.get("/", async (_req, res, next) => {
     try {
-      res.json(await buildPortalData(config));
+      res.json(await store.getPortalData());
     } catch (error) {
       next(error);
     }

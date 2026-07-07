@@ -10,9 +10,13 @@ type WorkspaceProps = {
   tree?: TreeNode;
   loading: boolean;
   error?: string;
+  sidebarCollapsed: boolean;
+  themeMode: "light" | "dark" | "system";
   onBackHome: () => void;
   onOpenPath: (path: string) => void;
   onSelectNode: (node: TreeNode) => void;
+  onToggleSidebar: () => void;
+  onThemeModeChange: (mode: "light" | "dark" | "system") => void;
 };
 
 export function Workspace({
@@ -21,24 +25,46 @@ export function Workspace({
   tree,
   loading,
   error,
+  sidebarCollapsed,
+  themeMode,
   onBackHome,
   onOpenPath,
-  onSelectNode
+  onSelectNode,
+  onToggleSidebar,
+  onThemeModeChange
 }: WorkspaceProps) {
   return (
     <section className="workspace">
       <header className="workspace__toolbar">
         <div className="workspace__toolbar-main">
-          <button className="workspace__back" type="button" onClick={onBackHome}>
-            返回首页
-          </button>
+          <div className="workspace__actions">
+            <button className="workspace__back" type="button" onClick={onBackHome}>
+              返回首页
+            </button>
+            <button className="workspace__back" type="button" onClick={onToggleSidebar}>
+              {sidebarCollapsed ? "显示目录" : "收起目录"}
+            </button>
+          </div>
           <Breadcrumbs path={initialPath} onNavigate={onOpenPath} />
         </div>
-        <SearchBox onOpenPath={onOpenPath} />
+        <div className="workspace__tools">
+          <label className="theme-switcher">
+            <span>主题</span>
+            <select
+              value={themeMode}
+              onChange={(event) => onThemeModeChange(event.target.value as "light" | "dark" | "system")}
+            >
+              <option value="system">跟随系统</option>
+              <option value="light">浅色</option>
+              <option value="dark">暗色</option>
+            </select>
+          </label>
+          <SearchBox onOpenPath={onOpenPath} />
+        </div>
       </header>
 
-      <div className="workspace__body">
-        <aside className="workspace__sidebar">
+      <div className={`workspace__body ${sidebarCollapsed ? "workspace__body--sidebar-collapsed" : ""}`}>
+        <aside className="workspace__sidebar" aria-hidden={sidebarCollapsed}>
           {tree ? (
             <DirectoryTree tree={tree} selectedPath={initialPath} onSelect={onSelectNode} />
           ) : (

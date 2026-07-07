@@ -9,6 +9,8 @@ type ViewState =
   | { mode: "home" }
   | { mode: "workspace"; path: string; anchor?: string };
 
+type ThemeMode = "light" | "dark" | "system";
+
 function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -38,6 +40,10 @@ function resolveFilePath(node: TreeNode): string | undefined {
   return node.overviewPath;
 }
 
+function systemPrefersDark(): boolean {
+  return typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
 export function App() {
   const [view, setView] = useState<ViewState>({ mode: "home" });
   const [portal, setPortal] = useState<PortalData>();
@@ -47,9 +53,15 @@ export function App() {
   const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string>();
   const [currentFile, setCurrentFile] = useState<FileContent>();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("note-viewer-sidebar-collapsed") === "true");
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const stored = localStorage.getItem("note-viewer-theme-mode");
+    return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+  });
 
   const viewRef = useRef(view);
   const currentFileRef = useRef<FileContent | undefined>(currentFile);
+  const treeRef = useRef<TreeNode | undefined>(tree);
 
   useEffect(() => {
     viewRef.current = view;
@@ -58,6 +70,41 @@ export function App() {
   useEffect(() => {
     currentFileRef.current = currentFile;
   }, [currentFile]);
+
+  useEffect(() => {
+    treeRef.current = tree;
+  }, [tree]);
+
+  useEffect(() => {
+    localStorage.setItem("note-viewer-sidebar-collapsed", String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    const applyTheme = () => {
+      const resolved =
+        themeMode === "system"
+          ? systemPrefersDark()
+            ? "dark"
+            : "light"
+          : themeMode;
+      document.documentElement.dataset.theme = resolved;
+    };
+
+    localStorage.setItem("note-viewer-theme-mode", themeMode);
+    applyTheme();
+
+    if (themeMode !== "system") {
+      return;
+    }
+
+    if (typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    media.addEventListener("change", applyTheme);
+    return () => media.removeEventListener("change", applyTheme);
+  }, [themeMode]);
 
   const loadPortal = useCallback(async () => {
     setPortalLoading(true);
@@ -88,7 +135,7 @@ export function App() {
       setWorkspaceLoading(true);
       setWorkspaceError(undefined);
       try {
-        const nextTree = existingTree || (await loadTree());
+        const nextTree = existingTree || treeRef.current || (await loadTree());
         const node = findNodeByPath(nextTree, requestedPath);
         if (!node) {
           setCurrentFile(undefined);
@@ -118,7 +165,7 @@ export function App() {
     if (view.mode !== "workspace") {
       return;
     }
-    void refreshWorkspace(view.path);
+    void refreshWorkspace(view.path, treeRef.current);
   }, [refreshWorkspace, view.mode, view.mode === "workspace" ? view.path : undefined]);
 
   useEffect(() => {
@@ -144,7 +191,7 @@ export function App() {
     eventSource.addEventListener("tree-changed", () => {
       void loadPortal();
       if (viewRef.current.mode === "workspace") {
-        void refreshWorkspace(viewRef.current.path);
+        void loadTree().then((nextTree) => refreshWorkspace(viewRef.current.mode === "workspace" ? viewRef.current.path : "", nextTree));
       }
     });
 
@@ -173,6 +220,10 @@ export function App() {
 
   const handleSelectNode = useCallback((node: TreeNode) => {
     setView({ mode: "workspace", path: node.path });
+  }, []);
+
+  const handleToggleSidebar = useCallback(() => {
+    setSidebarCollapsed((collapsed) => !collapsed);
   }, []);
 
   const headerTitle = useMemo(
@@ -207,9 +258,13 @@ export function App() {
             tree={tree}
             loading={workspaceLoading}
             error={workspaceError}
+            sidebarCollapsed={sidebarCollapsed}
+            themeMode={themeMode}
             onBackHome={handleBackHome}
             onOpenPath={handleOpenPath}
             onSelectNode={handleSelectNode}
+            onToggleSidebar={handleToggleSidebar}
+            onThemeModeChange={setThemeMode}
           />
         )}
       </div>

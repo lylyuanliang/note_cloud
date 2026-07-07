@@ -1,13 +1,12 @@
 import { Router } from "express";
-import type { ViewerConfig } from "../../shared/types";
-import { scanTree } from "../services/scanRepository";
+import type { RepositoryStore } from "../services/repositoryStore";
 
-export function createTreeRouter(config: ViewerConfig) {
+export function createTreeRouter(store: RepositoryStore) {
   const router = Router();
 
   router.get("/", async (_req, res, next) => {
     try {
-      res.json(await scanTree(config));
+      res.json(await store.getTree());
     } catch (error) {
       next(error);
     }

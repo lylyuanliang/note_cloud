@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SearchResult } from "../../shared/types";
 import { api } from "../lib/api";
 
@@ -11,10 +11,12 @@ export function SearchBox({ onOpenPath }: SearchBoxProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
+      requestIdRef.current += 1;
       setResults([]);
       setLoading(false);
       setError(undefined);
@@ -22,18 +24,29 @@ export function SearchBox({ onOpenPath }: SearchBoxProps) {
     }
 
     const timer = window.setTimeout(async () => {
+      const requestId = requestIdRef.current + 1;
+      requestIdRef.current = requestId;
       setLoading(true);
       setError(undefined);
       try {
-        setResults(await api.search(trimmed));
+        const nextResults = await api.search(trimmed);
+        if (requestIdRef.current === requestId) {
+          setResults(nextResults);
+        }
       } catch (searchError) {
-        setError(searchError instanceof Error ? searchError.message : "搜索失败");
+        if (requestIdRef.current === requestId) {
+          setError(searchError instanceof Error ? searchError.message : "搜索失败");
+        }
       } finally {
-        setLoading(false);
+        if (requestIdRef.current === requestId) {
+          setLoading(false);
+        }
       }
     }, 250);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [query]);
 
   return (

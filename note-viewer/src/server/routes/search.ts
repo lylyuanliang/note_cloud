@@ -1,16 +1,13 @@
 import { Router } from "express";
-import type { ViewerConfig } from "../../shared/types";
-import { scanTree } from "../services/scanRepository";
-import { searchNotes } from "../services/searchIndex";
+import type { RepositoryStore } from "../services/repositoryStore";
 
-export function createSearchRouter(config: ViewerConfig) {
+export function createSearchRouter(store: RepositoryStore) {
   const router = Router();
 
   router.get("/", async (req, res, next) => {
     try {
       const query = String(req.query.q || "");
-      const tree = await scanTree(config);
-      res.json(await searchNotes(query, tree, config));
+      res.json(await store.search(query));
     } catch (error) {
       next(error);
     }

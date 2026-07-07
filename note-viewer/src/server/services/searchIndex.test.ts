@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import type { TreeNode, ViewerConfig } from "../../shared/types";
-import { searchNotes } from "./searchIndex";
+import { buildSearchIndex, searchIndex } from "./searchIndex";
 
 async function fixture(): Promise<ViewerConfig> {
   const repoRoot = await mkdtemp(join(tmpdir(), "note-viewer-"));
@@ -40,26 +40,30 @@ function tree(): TreeNode {
 describe("searchIndex", () => {
   it("finds directory and file names", async () => {
     const config = await fixture();
-    const results = await searchNotes("spring", tree(), config);
+    const index = await buildSearchIndex(tree(), config);
+    const results = searchIndex("spring", index);
     expect(results.some((item) => item.path === "学习记录/spring.md")).toBe(true);
   });
 
   it("finds markdown first heading", async () => {
     const config = await fixture();
-    const results = await searchNotes("扩展", tree(), config);
+    const index = await buildSearchIndex(tree(), config);
+    const results = searchIndex("扩展", index);
     expect(results.some((item) => item.title === "Spring 扩展")).toBe(true);
   });
 
   it("does not match a file from its parent directory name", async () => {
     const config = await fixture();
-    const results = await searchNotes("学习记录", tree(), config);
+    const index = await buildSearchIndex(tree(), config);
+    const results = searchIndex("学习记录", index);
     expect(results).toEqual([{ title: "学习记录", path: "学习记录", type: "directory" }]);
   });
 
   it("finds directory by overview first heading and points to directory path", async () => {
     const config = await fixture();
     await writeFile(join(config.contentRoot, "学习记录", "readme.md"), "# 学习总览\n内容");
-    const results = await searchNotes("总览", tree(), config);
+    const index = await buildSearchIndex(tree(), config);
+    const results = searchIndex("总览", index);
     expect(results).toContainEqual({
       title: "学习总览",
       path: "学习记录",
@@ -70,6 +74,18 @@ describe("searchIndex", () => {
 
   it("returns empty results for blank query", async () => {
     const config = await fixture();
-    await expect(searchNotes("   ", tree(), config)).resolves.toEqual([]);
+    const index = await buildSearchIndex(tree(), config);
+    expect(searchIndex("   ", index)).toEqual([]);
+  });
+
+  it("limits results to 50 matches", () => {
+    const index = Array.from({ length: 55 }, (_, index) => ({
+      title: `match-${index}`,
+      path: `match-${index}.md`,
+      type: "file" as const,
+      haystack: "match"
+    }));
+
+    expect(searchIndex("match", index)).toHaveLength(50);
   });
 });

@@ -8,8 +8,9 @@ import { createFileRouter } from "./routes/file";
 import { createPortalRouter } from "./routes/portal";
 import { createSearchRouter } from "./routes/search";
 import { createTreeRouter } from "./routes/tree";
+import { createRepositoryStore, type RepositoryStore } from "./services/repositoryStore";
 
-export function createApp(config: ViewerConfig) {
+export function createApp(config: ViewerConfig, store: RepositoryStore = createRepositoryStore(config)) {
   const app = express();
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const clientDist = path.resolve(__dirname, "../client");
@@ -18,11 +19,11 @@ export function createApp(config: ViewerConfig) {
     res.json({ ok: true, basePath: config.publicBasePath });
   });
 
-  app.use("/api/tree", createTreeRouter(config));
-  app.use("/api/portal", createPortalRouter(config));
+  app.use("/api/tree", createTreeRouter(store));
+  app.use("/api/portal", createPortalRouter(store));
   app.use("/api/file", createFileRouter(config));
   app.use("/api/asset", createAssetRouter(config));
-  app.use("/api/search", createSearchRouter(config));
+  app.use("/api/search", createSearchRouter(store));
   app.use("/api/events", createEventsRouter());
 
   app.use("/api", (_req, res) => {
