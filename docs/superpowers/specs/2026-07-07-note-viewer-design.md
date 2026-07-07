@@ -1,36 +1,51 @@
-# Note Viewer Design
+# 笔记可视化预览服务设计
 
-Date: 2026-07-07
+日期：2026-07-07
 
-## Goal
+## 目标
 
-Build a visual note preview service for this repository. The service should let the user browse the note repository through a browser, using the real filesystem structure as the source of truth.
+为当前仓库开发一个可视化笔记预览服务。用户可以通过浏览器浏览笔记仓库，目录结构以真实文件系统为准。
 
-The viewer must support both direct Docker access and Nginx reverse proxy access. The repository should be mounted into the container as a read-only volume, so Markdown and text file changes on the host are reflected without rebuilding the image.
+预览服务需要同时支持两种访问方式：
 
-## Non-Goals
+- 直接通过 Docker 容器端口访问。
+- 通过 Nginx 反向代理访问。
 
-- Do not replace the existing `readme.md` navigation files.
-- Do not require the user to manually maintain a separate navigation manifest.
-- Do not write back to the mounted note repository in the first version.
-- Do not expose `.git`, `.vscode`, `.github`, or other internal project directories in the main note navigation.
-- Do not build a full CMS, editor, authentication system, or multi-user permission system in the first version.
+仓库根目录以只读卷挂载到容器中。宿主机上的 Markdown 和文本文件变化后，服务应能感知变化并刷新预览数据，不需要重新构建镜像。
 
-## Existing Repository Context
+## 非目标
 
-The repository is a personal Chinese note cloud:
+- 不替换现有 `readme.md` 导航文件。
+- 不要求用户手工维护额外的导航清单。
+- 第一版不向挂载的笔记仓库写入内容。
+- 主导航不展示 `.git`、`.vscode`、`.github` 等内部工程目录。
+- 第一版不做完整 CMS、在线编辑器、认证系统或多用户权限系统。
 
-- `README.md` is the top-level GitHub/Gitee entry.
-- `笔记/学习记录` contains technical learning notes.
-- `笔记/教程` contains operational tutorials.
-- Most content is Markdown, with images and a smaller number of text/config files such as YAML, SQL, CONF, JS, HTML, and TXT.
-- `笔记/学习记录/docker/1.docker-compose文件样例` contains runnable Docker Compose examples.
+## 现有仓库背景
 
-The current repository has no `.codegraph/` directory. It is not a traditional buildable application at the root.
+当前仓库是一个中文个人云笔记仓库：
 
-## Recommended Architecture
+- `README.md` 是 GitHub/Gitee 场景下的顶层入口。
+- `笔记/学习记录` 存放技术学习沉淀。
+- `笔记/教程` 存放操作型教程。
+- 主要内容是 Markdown，另外有图片和少量文本/配置文件，例如 YAML、SQL、CONF、JS、HTML、TXT。
+- `笔记/学习记录/docker/1.docker-compose文件样例` 包含可运行的 Docker Compose 样例。
 
-Create a new independent application under `note-viewer/`.
+仓库根目录目前没有 `.codegraph/`，也不是传统意义上的统一构建型应用。
+
+## 文档语言约定
+
+面向用户阅读的文档默认使用中文，包括设计文档、实现计划、README、交接说明和运行说明。
+
+以下内容可以保留英文：
+
+- 代码标识符、API 路径、配置项、命令和文件名。
+- 技术名词，例如 Docker、Nginx、React、TypeScript、Server-Sent Events。
+- 第三方库名称和标准协议名称。
+
+## 推荐架构
+
+新增一个独立应用目录 `note-viewer/`。
 
 ```text
 note_cloud/
@@ -84,18 +99,18 @@ note_cloud/
       └─ handoff.md
 ```
 
-The viewer is separate from `笔记/` so note content and viewer code can evolve independently.
+`note-viewer/` 与 `笔记/` 分离，避免预览器代码和笔记内容互相污染。后续升级预览器时，也不需要改动原始笔记目录。
 
-## Runtime Model
+## 运行模型
 
-Use a containerized Node service with a React frontend.
+使用容器化 Node 服务，前端采用 React。
 
-- The host mounts the entire repository into the container as read-only.
-- The backend reads files from the mounted repository.
-- The frontend calls backend APIs for the tree, file content, assets, search, and file change events.
-- Nginx can reverse proxy to the container, but Nginx is not responsible for scanning files.
+- 宿主机把整个仓库根目录只读挂载进容器。
+- 后端从挂载目录读取文件。
+- 前端通过后端 API 获取目录树、文件内容、图片资源、搜索结果和文件变化事件。
+- Nginx 只负责反向代理，不负责扫描文件。
 
-Example direct container usage:
+`docker-compose.yml` 放在 `note-viewer/` 目录下。示例：
 
 ```yaml
 services:
@@ -112,9 +127,13 @@ services:
       - PUBLIC_BASE_PATH=/
 ```
 
-This compose file lives in `note-viewer/`. From that directory, `build: .` builds the viewer and `..:/workspace:ro` mounts the repository root.
+从 `note-viewer/` 目录运行时：
 
-Example Nginx reverse proxy:
+- `build: .` 构建当前预览器应用。
+- `..:/workspace:ro` 将仓库根目录只读挂载到容器 `/workspace`。
+- `CONTENT_ROOT=/workspace/笔记` 表示主导航从 `笔记` 目录开始。
+
+Nginx 反向代理示例：
 
 ```nginx
 location /notes/ {
@@ -129,23 +148,29 @@ location /notes/ {
 }
 ```
 
-When served under `/notes/`, the container should be configured with `PUBLIC_BASE_PATH=/notes/`. The frontend must build API and asset URLs from that base path, not from hard-coded absolute `/api/...` paths. Relative URLs such as `api/tree` are acceptable when they resolve under the current base path.
+当服务挂在 `/notes/` 子路径下时，容器应配置：
 
-## Data Source Rules
+```text
+PUBLIC_BASE_PATH=/notes/
+```
 
-The real directory structure is the source of truth.
+前端构造 API 和资源 URL 时必须使用这个 base path，不能硬编码绝对路径 `/api/...`。也可以使用能在当前 base path 下解析的相对路径，例如 `api/tree`。
 
-- Main content root: `CONTENT_ROOT`, defaulting to `/workspace/笔记`.
-- Repository root: `REPO_ROOT`, defaulting to `/workspace`.
-- The top-level `README.md` can be displayed on the portal, but it is not the primary navigation source.
-- Directory nodes are generated from real directories.
-- File nodes are generated from supported text files.
-- `readme.md`, `README.md`, and `Readme.md` are treated as directory overview files.
-- If more than one overview file exists in the same directory, use this priority: `readme.md`, then `README.md`, then `Readme.md`.
-- A directory opens its local overview file by default when one exists.
-- Image files are available as assets for Markdown rendering, but they are not first-class navigation entries by default.
+## 数据源规则
 
-Default ignored paths are matched by path segment across tree, file, asset, search, and watch operations:
+真实目录结构是可视化导航的数据源。
+
+- 主内容根目录：`CONTENT_ROOT`，默认 `/workspace/笔记`。
+- 仓库根目录：`REPO_ROOT`，默认 `/workspace`。
+- 顶层 `README.md` 可以显示在首页门户中，但不作为主导航数据源。
+- 目录节点来自真实目录。
+- 文件节点来自支持预览的文本文件。
+- `readme.md`、`README.md`、`Readme.md` 都视为目录说明文件。
+- 如果同一目录下同时存在多个说明文件，优先级为：`readme.md`、`README.md`、`Readme.md`。
+- 打开目录时，如果存在目录说明文件，默认展示该说明文件。
+- 图片文件作为 Markdown 引用资源提供，默认不作为主导航中的一级文件节点展示。
+
+默认忽略路径按 path segment 匹配，并应用到目录树、文件读取、图片资源、搜索和监听逻辑：
 
 - `.git`
 - `.github`
@@ -156,21 +181,21 @@ Default ignored paths are matched by path segment across tree, file, asset, sear
 - `note-viewer/node_modules`
 - `note-viewer/dist`
 
-Supported preview file types for the first version:
+第一版支持的预览文件类型：
 
-- Markdown: `.md`
-- Text/config/code: `.txt`, `.yml`, `.yaml`, `.json`, `.conf`, `.sql`, `.js`, `.ts`, `.html`, `.css`, `.sh`, `.bat`, `.reg`
-- Images as Markdown assets: `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.svg`
+- Markdown：`.md`
+- 文本/配置/代码：`.txt`、`.yml`、`.yaml`、`.json`、`.conf`、`.sql`、`.js`、`.ts`、`.html`、`.css`、`.sh`、`.bat`、`.reg`
+- Markdown 图片资源：`.png`、`.jpg`、`.jpeg`、`.gif`、`.webp`、`.svg`
 
-## API Design
+## API 设计
 
-All API paths are read-only.
+所有 API 都是只读 API。
 
 ### `GET /api/tree`
 
-Returns the current note tree rooted at `CONTENT_ROOT`.
+返回以 `CONTENT_ROOT` 为根的当前笔记目录树。
 
-Response shape:
+响应结构：
 
 ```ts
 type TreeNode = {
@@ -186,9 +211,9 @@ type TreeNode = {
 
 ### `GET /api/portal`
 
-Returns data for the portal home.
+返回首页门户数据。
 
-Response shape:
+响应结构：
 
 ```ts
 type PortalData = {
@@ -202,15 +227,15 @@ type PortalData = {
 };
 ```
 
-`repoReadme` may only read `REPO_ROOT/README.md`. It must not accept an arbitrary client-provided path.
+`repoReadme` 只能读取 `REPO_ROOT/README.md`，不能接受客户端传入任意路径。
 
 ### `GET /api/file?path=<relative-path>`
 
-Returns a supported text file by path relative to `CONTENT_ROOT`.
+读取相对 `CONTENT_ROOT` 的受支持文本文件。
 
-Path parameters use UTF-8 URL encoding through `URLSearchParams`. The canonical path format in API responses is POSIX-style relative paths using `/`, even when the host is Windows.
+路径参数使用 `URLSearchParams` 做 UTF-8 编码。API 返回的 `path` 统一使用 POSIX 风格相对路径，即使用 `/` 分隔，即使宿主机是 Windows。
 
-Response shape:
+响应结构：
 
 ```ts
 type FileContent = {
@@ -225,105 +250,111 @@ type FileContent = {
 
 ### `GET /api/asset?path=<relative-path>`
 
-Returns image assets by path relative to `CONTENT_ROOT`. This endpoint is used by Markdown rendering.
+读取相对 `CONTENT_ROOT` 的图片资源，主要供 Markdown 渲染使用。
 
 ### `GET /api/search?q=<query>`
 
-First version search scope:
+第一版搜索范围：
 
-- File names
-- Directory names
-- Markdown first heading
-- Directory overview file titles
+- 文件名
+- 目录名
+- Markdown 一级标题
+- 目录说明文件标题
 
-Full-text search can be added later.
+全文搜索可以作为后续增强，不放进第一版强制范围。
 
 ### `GET /api/events`
 
-Uses Server-Sent Events to notify the frontend that the repository changed.
+使用 Server-Sent Events 通知前端仓库内容发生变化。
 
-Event examples:
+事件示例：
 
 - `tree-changed`
 - `file-changed`
 
-The frontend should refresh the tree and, if the current file changed, reload the current preview.
+前端收到事件后刷新目录树。如果当前打开的文件发生变化，也应重新加载当前预览。
 
-File watching should use a recursive watcher on `CONTENT_ROOT`, debounce bursts of changes, and emit coarse events rather than one event per filesystem notification. The implementation should tolerate Docker Desktop and Windows/macOS/Linux event differences by falling back to periodic rescan if native events are unreliable. SSE clients should reconnect automatically.
+文件监听策略：
 
-## Frontend Design
+- 对 `CONTENT_ROOT` 做递归监听。
+- 对短时间内的连续变化做 debounce，避免一次保存触发大量刷新。
+- 推送粗粒度事件，不需要每个底层文件事件都发给前端。
+- Docker Desktop、Windows、macOS、Linux 的文件事件行为不完全一致；如果原生事件不可靠，允许降级为周期性重新扫描。
+- SSE 客户端需要自动重连。
 
-The first version has two main screens.
+## 前端设计
 
-### Portal Home
+第一版包含两个主界面。
 
-The portal gives a visual entry into the note library.
+### 首页门户
 
-It should show:
+首页门户提供更直观的知识库入口。
 
-- Top-level entry cards for `学习记录` and `教程`.
-- Highlight cards for useful deep paths such as Docker Compose examples, design patterns, Spring, Git, IDE, Windows, and WSL when those paths exist.
-- Top-level repository `README.md` content as optional introduction.
-- A global search input.
+应展示：
 
-The portal should be useful even when the user does not remember the folder layout.
+- `学习记录`、`教程` 两个顶层入口卡片。
+- 当路径存在时，展示常用深层入口，例如 Docker Compose 样例、设计模式、Spring、Git、IDE、Windows、WSL。
+- 可选展示仓库顶层 `README.md` 作为简介。
+- 全局搜索入口。
 
-### Workspace
+首页门户的目标是：即使用户不记得具体文件夹结构，也能快速进入常用内容。
 
-The workspace is the main browsing view.
+### 工作台
 
-It should show:
+工作台是主要浏览界面。
 
-- Left side: real directory tree.
-- Top area: breadcrumbs, search, and a return-to-home action.
-- Main area: current directory overview or selected file preview.
-- Directory default behavior: open `readme.md` or `Readme.md` when present.
-- Markdown preview for `.md`.
-- Code-style preview for YAML, SQL, CONF, JS, HTML, TXT, and similar files.
+应展示：
 
-The UI should feel like a practical knowledge base, not a marketing page.
+- 左侧：真实目录树。
+- 顶部：面包屑、搜索、返回首页操作。
+- 主区域：当前目录说明或选中文件预览。
+- 打开目录时，默认展示本目录的 `readme.md`、`README.md` 或 `Readme.md`。
+- `.md` 使用 Markdown 文章预览。
+- YAML、SQL、CONF、JS、HTML、TXT 等使用代码样式预览。
 
-## Markdown Rendering
+界面风格应偏实用知识库，不做营销式首页。
 
-Markdown rendering should support:
+## Markdown 渲染
 
-- Headings
-- Tables
-- Lists
-- Fenced code blocks
-- Inline code
-- Relative image links
-- Relative Markdown links
+Markdown 预览至少支持：
 
-Relative Markdown links should route inside the viewer when they point to files under `CONTENT_ROOT`.
+- 标题
+- 表格
+- 列表
+- fenced code block
+- inline code
+- 相对图片链接
+- 相对 Markdown 链接
 
-Relative image links should be rewritten through the configured base path, for example `api/asset?path=...` or `${PUBLIC_BASE_PATH}api/asset?path=...`.
+相对 Markdown 链接如果指向 `CONTENT_ROOT` 下的文件，应在当前预览器内部跳转。
 
-## Security Boundaries
+相对图片链接应按 `PUBLIC_BASE_PATH` 重写，例如 `api/asset?path=...` 或 `${PUBLIC_BASE_PATH}api/asset?path=...`。
 
-The service must treat all file paths from the browser as untrusted.
+## 安全边界
 
-Required protections:
+浏览器传给服务端的所有路径都必须视为不可信输入。
 
-- Decode URL input before validation.
-- Normalize and resolve requested paths.
-- Reject absolute paths from client input.
-- Reject NUL characters.
-- Reject Windows backslash path separators in client path input; clients should use POSIX `/`.
-- Reject paths that escape `CONTENT_ROOT`.
-- Use realpath checks to prevent symlink escapes.
-- Do not expose ignored directories.
-- Apply the same path safety checks to tree, file, asset, search, Markdown link handling, and watch logic.
-- Disable or sanitize raw HTML in Markdown rendering.
-- Treat SVG as potentially unsafe; either serve it with restrictive headers or exclude SVG from image previews in the first implementation.
-- Run the Docker mount as read-only.
-- Do not implement write APIs in the first version.
+必须实现的保护：
 
-The service is intended for local or trusted network use. If it is exposed outside a trusted network, authentication and stricter access controls must be added first.
+- URL 输入先 decode，再校验。
+- 标准化并 resolve 请求路径。
+- 拒绝客户端传入绝对路径。
+- 拒绝 NUL 字符。
+- 客户端路径只接受 POSIX `/` 分隔，拒绝 Windows 反斜杠路径分隔符。
+- 拒绝逃逸出 `CONTENT_ROOT` 的路径。
+- 使用 realpath 校验，防止 symlink 逃逸。
+- 不暴露忽略目录。
+- tree、file、asset、search、Markdown 链接处理、watch 逻辑都必须使用同一套路径安全检查。
+- Markdown 原始 HTML 默认禁用或 sanitize。
+- SVG 视为潜在不安全资源；第一版可以用严格响应头提供，或者直接排除 SVG 预览。
+- Docker 挂载必须只读。
+- 第一版不实现写 API。
 
-## Development and Deployment Commands
+该服务面向本机或可信局域网使用。如果要暴露到公网，需要先增加认证和更严格的访问控制。
 
-Expected local development commands:
+## 开发与部署命令
+
+本地开发命令：
 
 ```bash
 cd note-viewer
@@ -331,20 +362,20 @@ npm install
 npm run dev
 ```
 
-Expected container usage:
+容器运行命令：
 
 ```bash
 cd note-viewer
 docker compose up --build
 ```
 
-Expected access URL:
+默认访问地址：
 
 ```text
 http://localhost:8088
 ```
 
-Expected production-like build verification:
+生产构建验证命令：
 
 ```bash
 cd note-viewer
@@ -352,34 +383,40 @@ npm run build
 npm run typecheck
 ```
 
-## Testing and Verification
+## 测试与验收
 
-Minimum verification for the first implementation:
+第一版最少需要验证：
 
-- TypeScript typecheck passes.
-- Production build passes.
-- Docker image builds.
-- Docker compose starts the viewer.
-- Browser can open the portal home.
-- Browser can open `学习记录` and `教程`.
-- Browser can preview a Markdown file.
-- Browser can preview a YAML or CONF file.
-- Browser can render a Markdown image through the asset endpoint.
-- Editing a mounted Markdown file causes the viewer to refresh after file change notification.
+- TypeScript typecheck 通过。
+- 生产构建通过。
+- Docker 镜像可以构建。
+- Docker Compose 可以启动预览服务。
+- 浏览器可以打开首页门户。
+- 浏览器可以进入 `学习记录` 和 `教程`。
+- 浏览器可以预览 Markdown 文件。
+- 浏览器可以预览 YAML 或 CONF 文件。
+- Markdown 中的图片可以通过 asset API 正常渲染。
+- 修改挂载目录中的 Markdown 文件后，预览器能收到变化并刷新。
 
-## Handoff Notes
+## 交接说明
 
-Future agents should start by reading:
+后续 agent 接手时，应优先阅读：
 
-1. This design document.
-2. `note-viewer/README.md` after implementation starts.
-3. `note-viewer/docs/handoff.md` after implementation starts.
+1. 本设计文档。
+2. 实现开始后的 `note-viewer/README.md`。
+3. 实现开始后的 `note-viewer/docs/handoff.md`。
 
-Implementation should keep write scopes isolated:
+实现时应保持写入范围清晰：
 
-- Backend filesystem/API work under `note-viewer/src/server`.
-- Frontend UI work under `note-viewer/src/client`.
-- Shared types under `note-viewer/src/shared`.
-- Docker and runtime docs under `note-viewer/`.
+- 后端文件系统/API 逻辑放在 `note-viewer/src/server`。
+- 前端 UI 放在 `note-viewer/src/client`。
+- 共享类型放在 `note-viewer/src/shared`。
+- Docker 和运行说明放在 `note-viewer/`。
 
-Subagents can safely work in parallel when their write scopes are disjoint.
+当写入范围互不重叠时，可以安全地并行使用 subagent：
+
+- 后端扫描/API 可由一个 worker 负责。
+- 前端门户/工作台可由一个 worker 负责。
+- Docker/README/交接文档可由一个 worker 负责。
+
+合并前需要由主会话统一检查接口契约、路径安全和运行命令。
