@@ -23,6 +23,7 @@ function tree(): TreeNode {
         name: "学习记录",
         path: "学习记录",
         type: "directory",
+        overviewPath: "学习记录/readme.md",
         children: [
           {
             name: "spring.md",
@@ -47,6 +48,24 @@ describe("searchIndex", () => {
     const config = await fixture();
     const results = await searchNotes("扩展", tree(), config);
     expect(results.some((item) => item.title === "Spring 扩展")).toBe(true);
+  });
+
+  it("does not match a file from its parent directory name", async () => {
+    const config = await fixture();
+    const results = await searchNotes("学习记录", tree(), config);
+    expect(results).toEqual([{ title: "学习记录", path: "学习记录", type: "directory" }]);
+  });
+
+  it("finds directory by overview first heading and points to directory path", async () => {
+    const config = await fixture();
+    await writeFile(join(config.contentRoot, "学习记录", "readme.md"), "# 学习总览\n内容");
+    const results = await searchNotes("总览", tree(), config);
+    expect(results).toContainEqual({
+      title: "学习总览",
+      path: "学习记录",
+      type: "directory",
+      snippet: "学习记录/readme.md"
+    });
   });
 
   it("returns empty results for blank query", async () => {

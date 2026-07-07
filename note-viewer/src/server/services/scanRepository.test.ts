@@ -48,4 +48,12 @@ describe("scanRepository", () => {
     expect(portal.entryCards.map((card) => card.title)).toContain("教程");
     expect(portal.entryCards.map((card) => card.title)).toContain("Docker Compose 样例");
   });
+
+  it("uses content root basename as root node name", async () => {
+    const repoRoot = await mkdtemp(join(tmpdir(), "note-viewer-"));
+    const contentRoot = join(repoRoot, "知识库");
+    await mkdir(contentRoot, { recursive: true });
+    const tree = await scanTree({ repoRoot, contentRoot, port: 8080, publicBasePath: "/" });
+    expect(tree.name).toBe("知识库");
+  });
 });

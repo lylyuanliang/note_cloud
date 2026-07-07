@@ -29,3 +29,21 @@ Self-Review:
 Concerns:
 - Windows cannot reliably host multiple files in one directory that differ only by case (`readme.md` vs `README.md`) on the default case-insensitive filesystem, so the overview-priority assertion was verified with a pure helper (`selectOverviewName`) instead of an on-disk integration case.
 - Windows directory symlink creation may require elevated privileges; the symlink-skip test uses a junction to validate the same scanner behavior in this environment.
+
+---
+
+Fix Update (Task 3 review follow-up):
+
+- Restricted `searchNotes()` matching scope to node names plus Markdown H1 / overview H1 content only. Removed `node.path` from the generic search haystack so parent directory names no longer cause file hits.
+- Added directory overview search behavior: when a directory node has `overviewPath`, the overview file H1 is searched and matching results now point to the directory node `path` with `snippet` set to the overview file path.
+- Kept file matching scoped to `node.name`, with Markdown files additionally matching their own H1.
+- Updated `scanTree()` root naming so the root node uses `path.basename(CONTENT_ROOT)` instead of the hard-coded `笔记`.
+- Expanded tests to cover:
+  - parent directory name does not match child files;
+  - directory overview H1 matches the directory result;
+  - custom `CONTENT_ROOT` basename becomes the root node name.
+
+Verification:
+
+- `npm test -- src/server/services` -> passed (`3` files, `15` tests)
+- `npm run typecheck` -> passed

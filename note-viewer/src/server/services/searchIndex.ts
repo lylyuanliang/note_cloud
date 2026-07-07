@@ -21,9 +21,25 @@ export async function searchNotes(
   const results: SearchResult[] = [];
 
   async function walk(node: TreeNode): Promise<void> {
-    const haystack = `${node.name} ${node.path}`.toLowerCase();
-    if (haystack.includes(normalized)) {
+    if (node.name.toLowerCase().includes(normalized)) {
       results.push({ title: node.name, path: node.path, type: node.type });
+    }
+
+    if (node.type === "directory" && node.overviewPath) {
+      try {
+        const file = await readTextFile(node.overviewPath, config);
+        const heading = firstHeading(file.content);
+        if (heading?.toLowerCase().includes(normalized)) {
+          results.push({
+            title: heading,
+            path: node.path,
+            type: "directory",
+            snippet: node.overviewPath
+          });
+        }
+      } catch {
+        // Ignore unreadable overview content and continue traversal.
+      }
     }
 
     if (node.type === "file" && node.fileKind === "markdown") {
@@ -39,7 +55,7 @@ export async function searchNotes(
           });
         }
       } catch {
-        return;
+        // Ignore unreadable markdown content and continue traversal.
       }
     }
 

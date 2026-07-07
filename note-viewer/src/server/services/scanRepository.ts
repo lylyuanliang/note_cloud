@@ -43,7 +43,7 @@ async function scanNode(
   }
 
   const safeRelativePath = toPosixPath(relativePath);
-  const name = relativePath ? path.basename(relativePath) : "笔记";
+  const name = relativePath ? path.basename(relativePath) : path.basename(absolutePath);
 
   if (info.isDirectory()) {
     const entries = await readdir(absolutePath);
