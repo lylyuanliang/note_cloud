@@ -15,7 +15,7 @@ DONE_WITH_CONCERNS
 
 ## commit
 
-f4a3f63
+9779a41
 
 ## command_results
 
@@ -48,3 +48,14 @@ f4a3f63
 
 - `docker compose build` is not currently reproducible in this environment because the Docker daemon cannot reach Docker Hub to pull `node:20-alpine`.
 - `npm run build` succeeds but surfaces an existing Vite warning about `/index.html` and `runtime-config.js`; this task did not change application source, so the warning was left untouched.
+
+## fix_update_2026-07-07
+
+- 已扩充 `note-viewer/docs/handoff.md`，补齐 Docker 运行说明、只读挂载说明、Nginx `/notes/` 代理说明、`PUBLIC_BASE_PATH`、`WATCH_USE_POLLING`、验证命令和关键边界。
+- 已修正 handoff 中的路径歧义，明确 `docs/superpowers/...` 指的是仓库根目录下的路径。
+- 已在 `note-viewer/.dockerignore` 中增加 `log/` 和 `logs/` 目录忽略。
+- 已重新运行 `npm run typecheck`、`npm test`、`npm run build`，结果如下：
+  - `npm run typecheck`：通过
+  - `npm test`：通过，6 个测试文件、30 个测试全部通过
+  - `npm run build`：通过，保留一个现有的 Vite `/index.html` 与 `runtime-config.js` 警告
+- 尚未重新运行 `docker compose build`；之前的外部拉取失败仍作为环境性 concern 保留。
