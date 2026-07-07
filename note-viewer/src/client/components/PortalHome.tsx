@@ -58,7 +58,7 @@ export function PortalHome({ data, loading, error, onOpenPath }: PortalHomeProps
         <div className="portal__section">
           <div className="portal__section-title">
             <h2>仓库简介</h2>
-            <p>显示仓库顶层 README，便于快速理解内容范围。</p>
+            <p>显示仓库顶层说明文档，便于快速理解内容范围。</p>
           </div>
           <FilePreview
             file={data.repoReadme}

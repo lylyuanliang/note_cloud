@@ -83,3 +83,25 @@ STATUS: FIXED
 
 fix concerns:
 - 本次没有启动浏览器做手工点击验证，因此跨文档锚点滚动行为依赖代码路径和回归测试确认，未做页面级现场点检。
+
+---
+
+## Task 5 Re-review Fix
+
+STATUS: FIXED
+
+修复范围:
+- `note-viewer/src/client/components/PortalHome.tsx`
+
+修复内容:
+- 将首页门户中可见文案里的英文 `README` 改为中文“说明文档”，保持新增/修改文案为中文。
+
+验证结果:
+1. `cd note-viewer && npm run typecheck`
+   - 结果: exit 0
+2. `cd note-viewer && npm run build`
+   - 结果: exit 0
+   - 关键信息: 构建成功，仍有既有提示 `<script src="./runtime-config.js"> in "/index.html" can't be bundled without type="module" attribute`
+
+fix commit:
+- `e56f458` (`fix: localize readme label`)
