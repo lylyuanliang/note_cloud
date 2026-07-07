@@ -6,8 +6,28 @@
 
 ## Docker 启动
 
+常用速查：
+
 ```bash
 cd note-viewer
+docker compose up --build -d
+```
+
+查看日志：
+
+```bash
+docker compose logs -f
+```
+
+停止服务：
+
+```bash
+docker compose down
+```
+
+如果需要前台查看构建和启动过程：
+
+```bash
 docker compose up --build
 ```
 
