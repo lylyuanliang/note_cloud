@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<!--
+    Agent note:
+    1. After every source change, update the page version number shown in the title/header.
+    2. Copying to the local Nginx static directory is only needed when Nginx is installed/configured on this machine.
+       If the local Nginx directory does not exist, skip the copy step.
+    After editing this source file, copy it to the local Nginx static directory:
+    Copy-Item -LiteralPath "D:\file_save\workspace\gitlab\hatsmis\yunda-module-hatsmis-data_processing\src\main\resources\kafka_sim.html" -Destination "D:\file_save\workspace\note_cloud\笔记\学习记录\docker\1.docker-compose文件样例\compose\nginx\html\kafka_sim.html" -Force
+    This comment is only a reminder; it does not automate the copy.
+-->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Kafka 数据仿真工作流引擎 v3.0.1</title>
+    <style>
+        :root{--bg:#0f1419;--panel:#1a2332;--border:#2d3a4f;--text:#e8edf4;--muted:#8b9cb3;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6}
+        *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Segoe UI,Microsoft YaHei; line-height: 1.5;}
+        .container{max-width:1200px;margin:auto;padding:20px}
+        .panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:18px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+        .card{background:#202c3f;border:1px solid var(--border);padding:14px;border-radius:12px;position:relative}
+        label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+        input,select,textarea{width:100%;padding:8px 10px;background:#0d1117;color:#fff;border:1px solid var(--border);border-radius:8px;font-size:13px}
+        .row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+        .row>*{flex:1;min-width:100px}
+        .btn{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px;transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 4px;}
+        .btn:hover{filter: brightness(1.1); transform: translateY(-1px);}
+        .btn:active{transform: translateY(0);}
+        .btn:disabled{opacity: 0.5; cursor: not-allowed; transform: none;}
+        .blue{background:var(--blue);color:#fff}.green{background:var(--green);color:#fff}
+        .red{background:var(--red);color:#fff}.gray{background:#344155;color:#fff}.orange{background:var(--orange);color:#fff}.purple{background:var(--purple);color:#fff}
+        
+        /* 工作流特有样式 */
+        .wf-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .wf-table th { text-align: left; font-size: 12px; color: var(--muted); padding: 8px; border-bottom: 1px solid var(--border); }
+        .wf-table td { padding: 8px; border-bottom: 1px solid rgba(45, 58, 79, 0.5); }
+        .wf-row-active { background: rgba(59, 130, 246, 0.15); transition: background 0.3s; }
+        .wf-row-active td { border-bottom-color: var(--blue); }
+        .delay-input { width: 80px !important; text-align: center; }
+        .step-index { font-family: monospace; font-weight: bold; color: var(--blue); width: 30px; }
+        
+        /* 折叠面板样式 */
+        .panel-header { cursor: pointer; user-select: none; }
+        .panel-content { 
+            max-height: 2000px; 
+            overflow: hidden; 
+            transition: max-height 0.3s ease-in-out, opacity 0.3s, margin-top 0.3s;
+            opacity: 1;
+        }
+        .panel-collapsed .panel-content { 
+            max-height: 0; 
+            opacity: 0; 
+            margin-top: 0;
+            pointer-events: none;
+        }
+        .collapse-icon { transition: transform 0.3s; font-size: 12px; margin-right: 8px; color: var(--muted); }
+        .panel-collapsed .collapse-icon { transform: rotate(-90deg); }
+        .workflow-summary { font-size: 12px; color: var(--muted); font-weight: normal; margin-left: 10px; }
+        
+        .log { height:250px; overflow:auto; background:#0a0e14; padding:10px; border-radius:8px; font-family: Consolas, Monaco, monospace; font-size:12px; border:1px solid var(--border) }
+        .log-item { margin-bottom:2px; border-bottom: 1px solid #1a2332; padding-bottom: 2px; }
+        .log-time { color: var(--muted); margin-right: 8px; }
+        .log-info { color: var(--text); }
+        .log-success { color: var(--green); }
+        .log-error { color: var(--red); font-weight: bold; }
+        .log-warn { color: var(--orange); }
+
+        .progress-container { margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
+        .progress-bar { height: 6px; background: #0d1117; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--purple)); width: 0%; transition: width 0.3s; }
+        .status-text { font-size: 13px; font-weight: bold; color: var(--orange); display: flex; justify-content: space-between; }
+        
+        h3 { margin-top: 0; border-left: 4px solid var(--blue); padding-left: 10px; margin-bottom: 15px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+        h4 { margin-top: 0; margin-bottom: 10px; font-size: 14px; color: var(--blue); }
+        
+        .history-popover { display:none; position:absolute; background:#1a2332; border:1px solid var(--border); border-radius:8px; width:100%; z-index:100; max-height:200px; overflow:auto; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .history-item { padding:8px 12px; cursor:pointer; border-bottom:1px solid #2d3a4f; font-size:12px; }
+        .history-item:hover { background: var(--blue); }
+        
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; text-transform: uppercase; font-weight: bold; }
+        .badge-batch { background: var(--purple); color: white; }
+        .badge-single { background: var(--blue); color: white; }
+        .status-settings { margin-top: 10px; border-top: 1px solid #2d3a4f; padding-top: 10px; }
+        .status-settings summary { list-style: none; width: fit-content; }
+        .status-settings summary::-webkit-details-marker { display: none; }
+        .status-settings .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+        .status-hint { color: var(--muted); font-size: 11px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h1 style="margin: 0; font-size: 24px;">🚀 Kafka 仿真工作流引擎 <small style="font-size: 12px; color: var(--muted); font-weight: normal;">v3.0.1</small></h1>
+        <div id="connectionStatus" class="badge" style="background: var(--green);">后端就绪</div>
+    </div>
+
+    <!-- 1. 全局配置 -->
+    <div class="panel">
+        <h3>全局参数设置</h3>
+        <div class="row" style="margin-bottom:15px">
+            <div style="flex:3"><label>后端基础路径 (Nginx Proxy)</label><input id="apiBase" value="/tool-api" placeholder="/tool-api"></div>
+            <div style="flex:1"><label>采集编号</label><input id="equipCode" value="test000000001"></div>
+        </div>
+        <div class="row">
+            <div style="flex:2; position:relative;">
+                <label>过车 ID (每次一键执行前会自动更新)</label>
+                <div class="row">
+                    <input id="idx" style="font-family: monospace; color: var(--orange); font-weight: bold;">
+                    <button class="btn gray" style="min-width:60px" onclick="genIdx()">生成</button>
+                    <button class="btn gray" style="min-width:60px" onclick="toggleHistory()">历史</button>
+                </div>
+                <div id="historyPopover" class="history-popover"></div>
+            </div>
+            <div style="flex:1"><label>模拟模式</label>
+                <select id="mode">
+                    <option value="template">模板模式 (资源文件)</option>
+                    <option value="dynamic" disabled>动态模式 (内建生成)</option>
+                </select>
+            </div>
+            <div style="flex:1"><label>默认车厢数</label><input id="carriageCount" type="number" value="28"></div>
+            <div style="flex:1"><label>设备号列表</label><input id="equipNumbers" value="AL2"></div>
+        </div>
+    </div>
+
+    <!-- 2. 工作流编排器 -->
+    <div class="panel" id="workflowPanel">
+        <h3 class="panel-header" onclick="togglePanel('workflowPanel')">
+            <div style="display: flex; align-items: center;">
+                <span class="collapse-icon">▼</span>
+                <span>🎭 流程场景编排</span>
+                <span id="wfSummary" class="workflow-summary"></span>
+            </div>
+            <div style="display: flex; gap: 8px;" onclick="event.stopPropagation()">
+                <button class="btn gray" onclick="loadWorkflow('standard')">加载标准流程</button>
+                <button class="btn gray" onclick="loadWorkflow('retry')">加载轮温重试场景</button>
+                <button class="btn red" onclick="clearWorkflow()">清空</button>
+            </div>
+        </h3>
+        
+        <div class="panel-content">
+            <table class="wf-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">顺序</th>
+                        <th>场景消息类型</th>
+                        <th style="width: 120px;">模式</th>
+                        <th style="width: 120px;">设备号 (可选)</th>
+                        <th style="width: 150px;">发送后延迟 (ms)</th>
+                        <th style="width: 120px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="workflowBody">
+                    <!-- 动态插入行 -->
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn blue" onclick="addStep()">➕ 添加仿真步骤</button>
+                <div class="row" style="flex: 0 0 500px; justify-content: flex-end;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-right: 15px;">
+                        <input type="checkbox" id="autoId" checked style="width: 18px; height: 18px; cursor: pointer;">
+                        <label for="autoId" style="margin: 0; color: var(--text); cursor: pointer;">执行前自动更新过车 ID</label>
+                    </div>
+                    <button id="runBtn" class="btn green" style="padding: 10px 24px; font-size: 14px;" onclick="runFullWorkflow()">
+                        ▶ 启动一键仿真
+                    </button>
+                </div>
+            </div>
+
+            <div class="progress-container" id="progressArea" style="display: none;">
+                <div class="status-text">
+                    <span id="statusText">等待启动...</span>
+                    <span id="percentText">0%</span>
+                </div>
+                <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 手动调试卡片 -->
+    <div style="margin-bottom: 10px; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 10px;">
+        <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);">
+        手动调试单条接口
+        <hr style="flex: 1; border: 0; border-top: 1px solid var(--border);">
+    </div>
+    <div class="grid" id="manualCards"></div>
+
+    <!-- 4. 日志面板 -->
+    <div class="panel" style="margin-top: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h3 style="margin-bottom:0; border:none; padding: 0;">📜 实时执行日志</h3>
+            <button class="btn gray" onclick="clearLog()">清空日志</button>
+        </div>
+        <div class="log" id="log"></div>
+    </div>
+</div>
+
+<script>
+    // 配置常量
+    const SCENARIOS = [
+        { id: 'come', name: '来车信号', batch: false },
+        { id: 'steelSignal', name: '磁钢信号', batch: false },
+        { id: 'collect', name: '车号消息 (Collect)', batch: true },
+        { id: 'image', name: '图片路径 (Image)', batch: true, hasEquip: true },
+        { id: 'hotWheel', name: '轮温数据 (HotWheel)', batch: false },
+        { id: 'hotWheelStatus', name: '轮温设备状态', batch: false, hasEquip: true, hasTimer: true },
+        { id: 'videoPath', name: '视频路径消息', batch: true, hasEquip: true },
+        { id: 'algorithm', name: '算法检测结果', batch: false, hasEquip: true },
+        { id: 'leave', name: '离车信号', batch: false },
+        { id: 'heartbeat', name: '设备心跳', batch: false, hasTimer: true }
+    ];
+
+    // 预设流程
+    const PRESETS = {
+        standard: [
+            { type: 'come', isBatch: false, delay: 1000, equip: '' },
+            { type: 'steelSignal', isBatch: false, delay: 1000, equip: '' },
+            { type: 'collect', isBatch: true, delay: 2000, equip: '' },
+            { type: 'image', isBatch: true, delay: 1500, equip: 'AL2' },
+            { type: 'hotWheel', isBatch: false, delay: 1000, equip: '' },
+            { type: 'leave', isBatch: false, delay: 500, equip: '' }
+        ],
+        retry: [
+            { type: 'come', isBatch: false, delay: 800, equip: '' },
+            { type: 'collect', isBatch: true, delay: 1500, equip: '' },
+            { type: 'leave', isBatch: false, delay: 5000, equip: '' }, // 离车先发
+            { type: 'hotWheel', isBatch: false, delay: 1000, equip: '' } // 轮温延迟5秒发，触发后端重试逻辑
+        ]
+    };
+
+    let workflowSteps = [];
+    let isRunning = false;
+    let timers = {};
+
+    const HOT_WHEEL_STATUS_DEFAULTS = {
+        voltagevalue: '0',
+        noisevalue: '0',
+        probeoutputstatus: '0',
+        reserved1status: '0',
+        reserved2status: '0'
+    };
+    const MANUAL_HOT_WHEEL_STATUS_CACHE_KEY = 'kafka_sim_v3_manual_hot_wheel_status';
+    const MANUAL_EQUIP_CACHE_KEY = 'kafka_sim_v3_manual_equip';
+
+    const HOT_WHEEL_STATUS_FIELDS = [
+        { key: 'voltagevalue', label: '电压状态' },
+        { key: 'noisevalue', label: '噪声状态' },
+        { key: 'probeoutputstatus', label: '探头输出状态' },
+        { key: 'reserved1status', label: '预留状态1' },
+        { key: 'reserved2status', label: '预留状态2' }
+    ];
+
+    // --- 初始化 ---
+    function init() {
+        loadConfig();
+        loadWorkflowFromCache() || loadWorkflow('standard');
+        renderManualCards();
+        if (!document.getElementById('idx').value) genIdx();
+        
+        // 监听全局设备号变化，同步更新占位符
+        document.getElementById('equipNumbers').addEventListener('input', () => {
+            renderWorkflow();
+            renderManualCards();
+        });
+
+        // 恢复折叠状态
+        if (localStorage.getItem('kafka_sim_v3_wf_collapsed') === 'true') {
+            document.getElementById('workflowPanel').classList.add('panel-collapsed');
+        }
+    }
+
+    // --- UI 控制 ---
+    function togglePanel(id) {
+        const el = document.getElementById(id);
+        el.classList.toggle('panel-collapsed');
+        if (id === 'workflowPanel') {
+            localStorage.setItem('kafka_sim_v3_wf_collapsed', el.classList.contains('panel-collapsed'));
+        }
+    }
+
+    function updateWorkflowSummary() {
+        const count = workflowSteps.length;
+        const totalDelay = workflowSteps.reduce((acc, s) => acc + (s.delay || 0), 0);
+        const summaryEl = document.getElementById('wfSummary');
+        if (count > 0) {
+            summaryEl.textContent = `(已排期 ${count} 步, 预估耗时 ${(totalDelay / 1000).toFixed(1)}s)`;
+        } else {
+            summaryEl.textContent = '(暂未编排步骤)';
+        }
+    }
+
+    function toggleTimer(type) {
+        if (timers[type]) {
+            clearInterval(timers[type]);
+            delete timers[type];
+            const btn = document.getElementById(`timerBtn_${type}`);
+            btn.textContent = "定时发送";
+            btn.className = "btn blue";
+            log(`已停止 ${getScenarioName(type)} 的定时发送`, 'warn');
+        } else {
+            const interval = parseInt(document.getElementById(`interval_${type}`).value) || 10;
+            const scenario = SCENARIOS.find(s => s.id === type);
+            const equipInput = scenario && scenario.hasEquip ? document.getElementById(`equip_manual_${type}`) : null;
+            const equip = equipInput ? equipInput.value : null;
+            const hotWheelStatus = type === 'hotWheelStatus' ? getManualHotWheelStatus() : null;
+            log(`已开启 ${getScenarioName(type)} 的定时发送，频率: ${interval}秒`, 'success');
+            sendRequest(type, false, equip, hotWheelStatus);
+            timers[type] = setInterval(() => sendRequest(type, false, equip, hotWheelStatus), interval * 1000);
+            const btn = document.getElementById(`timerBtn_${type}`);
+            btn.textContent = "停止定时";
+            btn.className = "btn red";
+        }
+    }
+
+    // --- 核心业务函数 ---
+
+    function genIdx() {
+        const d = new Date();
+        const p = n => String(n).padStart(2, '0');
+        const newIdx = '511' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + '001';
+        document.getElementById('idx').value = newIdx;
+        log(`生成新过车ID: ${newIdx}`, 'info');
+        return newIdx;
+    }
+
+    async function sendRequest(type, isBatch = false, equip = null, hotWheelStatus = null) {
+        const globalEquip = document.getElementById('equipNumbers').value.trim();
+        // 核心逻辑：场景优先，场景没配置则取全局
+        const finalEquip = (equip && equip.trim()) ? equip.trim() : globalEquip;
+
+        const base = document.getElementById('apiBase').value.replace(/\/$/, '');
+        const payload = {
+            idx: document.getElementById('idx').value,
+            equipmentCode: document.getElementById('equipCode').value,
+            equipmentNumbers: finalEquip,
+            mode: document.getElementById('mode').value,
+            carriageCount: parseInt(document.getElementById('carriageCount').value),
+            enableAlgorithm: true
+        };
+        if (type === 'hotWheelStatus') {
+            Object.assign(payload, normalizeHotWheelStatus(hotWheelStatus));
+        }
+
+        const endpoint = isBatch ? `sendBatch/${type}` : `send/${type}`;
+        const url = `${base}/kafka/sim/${endpoint}`;
+        
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await resp.text();
+            if (resp.ok) {
+                log(`[${type}] [设备:${finalEquip}] 发送成功: ${result}`, 'success');
+                return true;
+            } else {
+                log(`[${type}] [设备:${finalEquip}] 发送失败: ${result}`, 'error');
+                return false;
+            }
+        } catch (e) {
+            log(`[${type}] 请求异常: ${e.message}`, 'error');
+            return false;
+        }
+    }
+
+    async function runFullWorkflow() {
+        if (isRunning) return;
+        if (workflowSteps.length === 0) { alert("请先添加步骤！"); return; }
+
+        // 需求实现：点击一键发送时重新生成 ID
+        if (document.getElementById('autoId').checked) {
+            const newId = genIdx();
+            saveIdxToHistory(newId);
+        }
+
+        const runBtn = document.getElementById('runBtn');
+        const progressArea = document.getElementById('progressArea');
+        const fill = document.getElementById('progressFill');
+        const status = document.getElementById('statusText');
+        const percent = document.getElementById('percentText');
+
+        isRunning = true;
+        runBtn.disabled = true;
+        runBtn.innerHTML = "⏳ 正在执行...";
+        progressArea.style.display = 'block';
+        clearLog();
+        log("开始执行工作流仿真...", 'warn');
+
+        for (let i = 0; i < workflowSteps.length; i++) {
+            const step = workflowSteps[i];
+            const rows = document.querySelectorAll('#workflowBody tr');
+            
+            // 视觉高亮
+            rows.forEach(r => r.classList.remove('wf-row-active'));
+            rows[i].classList.add('wf-row-active');
+            rows[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            // 更新进度条
+            const progress = ((i) / workflowSteps.length) * 100;
+            fill.style.width = `${progress}%`;
+            percent.textContent = `${Math.round(progress)}%`;
+            status.textContent = `步骤 ${i + 1}/${workflowSteps.length}: 正在发送 ${getScenarioName(step.type)}...`;
+
+            // 执行请求
+            const success = await sendRequest(step.type, step.isBatch, step.equip, step.hotWheelStatus);
+            if (!success) {
+                log("由于步骤失败，仿真工作流已中止。", 'error');
+                break;
+            }
+
+            // 处理延迟
+            if (step.delay > 0 && i < workflowSteps.length - 1) {
+                status.textContent = `等待延迟: ${step.delay}ms...`;
+                await new Promise(r => setTimeout(r, step.delay));
+            }
+        }
+
+        fill.style.width = '100%';
+        percent.textContent = '100%';
+        status.textContent = '✅ 仿真工作流执行完成';
+        log("工作流执行完毕。", 'warn');
+        
+        setTimeout(() => {
+            isRunning = false;
+            runBtn.disabled = false;
+            runBtn.innerHTML = "▶ 启动一键仿真";
+            document.querySelectorAll('#workflowBody tr').forEach(r => r.classList.remove('wf-row-active'));
+        }, 1000);
+    }
+
+    // --- 工作流 UI 管理 ---
+
+    function renderWorkflow() {
+        const body = document.getElementById('workflowBody');
+        body.innerHTML = '';
+        const globalEquip = document.getElementById('equipNumbers').value || 'AL2';
+        workflowSteps.forEach((step, index) => {
+            const sc = SCENARIOS.find(s => s.id === step.type);
+            if (sc && sc.id === 'hotWheelStatus') {
+                step.hotWheelStatus = normalizeHotWheelStatus(step.hotWheelStatus);
+            }
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="step-index">${index + 1}</span></td>
+                <td>
+                    <select onchange="updateStep(${index}, 'type', this.value)">
+                        ${SCENARIOS.map(s => `<option value="${s.id}" ${s.id === step.type ? 'selected' : ''}>${s.name}</option>`).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select onchange="updateStep(${index}, 'isBatch', this.value === 'true')">
+                        <option value="false" ${!step.isBatch ? 'selected' : ''}>单条 (Single)</option>
+                        <option value="true" ${step.isBatch ? 'selected' : ''}>批量 (Batch)</option>
+                    </select>
+                </td>
+                <td>
+                    ${sc && sc.hasEquip ? `<input type="text" placeholder="全局: ${globalEquip}" value="${step.equip || ''}" onchange="updateStep(${index}, 'equip', this.value)">` : '<span style="color:var(--muted)">-</span>'}
+                    ${sc && sc.id === 'hotWheelStatus' ? renderHotWheelStatusSettings(`workflow_${index}`, normalizeHotWheelStatus(step.hotWheelStatus), (field) => `updateStepHotWheelStatus(${index}, '${field}', this.value)`) : ''}
+                </td>
+                <td>
+                    <input type="number" class="delay-input" value="${step.delay}" onchange="updateStep(${index}, 'delay', parseInt(this.value))">
+                </td>
+                <td>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn gray" onclick="moveStep(${index}, -1)" title="上移">↑</button>
+                        <button class="btn gray" onclick="moveStep(${index}, 1)" title="下移">↓</button>
+                        <button class="btn red" onclick="removeStep(${index})" title="删除">×</button>
+                    </div>
+                </td>
+            `;
+            body.appendChild(tr);
+        });
+        saveWorkflowToCache();
+        updateWorkflowSummary();
+    }
+
+    function addStep() {
+        workflowSteps.push({ type: 'come', isBatch: false, delay: 1000, equip: '' });
+        renderWorkflow();
+    }
+
+    function removeStep(index) {
+        workflowSteps.splice(index, 1);
+        renderWorkflow();
+    }
+
+    function moveStep(index, dir) {
+        const newIndex = index + dir;
+        if (newIndex >= 0 && newIndex < workflowSteps.length) {
+            const temp = workflowSteps[index];
+            workflowSteps[index] = workflowSteps[newIndex];
+            workflowSteps[newIndex] = temp;
+            renderWorkflow();
+        }
+    }
+
+    function updateStep(index, field, value) {
+        workflowSteps[index][field] = value;
+        // 如果切换了类型，自动判定是否默认支持 Batch
+        if (field === 'type') {
+            const sc = SCENARIOS.find(s => s.id === value);
+            workflowSteps[index].isBatch = sc ? sc.batch : false;
+            workflowSteps[index].equip = sc && sc.hasEquip ? (workflowSteps[index].equip || '') : '';
+            workflowSteps[index].hotWheelStatus = sc && sc.id === 'hotWheelStatus' ? normalizeHotWheelStatus(workflowSteps[index].hotWheelStatus) : undefined;
+            renderWorkflow();
+        }
+        saveWorkflowToCache();
+    }
+
+    function updateStepHotWheelStatus(index, field, value) {
+        workflowSteps[index].hotWheelStatus = normalizeHotWheelStatus(workflowSteps[index].hotWheelStatus);
+        workflowSteps[index].hotWheelStatus[field] = value;
+        saveWorkflowToCache();
+    }
+
+    function loadWorkflow(key) {
+        workflowSteps = JSON.parse(JSON.stringify(PRESETS[key]));
+        renderWorkflow();
+        log(`已加载预设流程: ${key === 'standard' ? '标准流程' : '重试场景'}`, 'info');
+    }
+
+    function clearWorkflow() {
+        workflowSteps = [];
+        renderWorkflow();
+    }
+
+    // --- 其他 UI 渲染 ---
+
+    function renderManualCards() {
+        const grid = document.getElementById('manualCards');
+        grid.innerHTML = '';
+        const globalEquip = document.getElementById('equipNumbers').value || 'AL2';
+        SCENARIOS.forEach(t => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); margin-bottom: 10px; padding-bottom: 5px;">
+                    <h4 style="margin:0">${t.name}</h4>
+                    <span style="font-size: 10px; color: var(--muted);">${t.id}</span>
+                </div>
+                ${t.hasEquip ? `
+                    <div style="margin-bottom: 10px;">
+                        <label>指定设备号</label>
+                        <input id="equip_manual_${t.id}" value="${getManualEquipFromCache(t.id)}" placeholder="全局: ${globalEquip}" onchange="saveManualEquip('${t.id}', this.value)">
+                    </div>
+                ` : ''}
+                ${t.id === 'hotWheelStatus' ? renderHotWheelStatusSettings('manual', getManualHotWheelStatusFromCache(), (field) => 'saveManualHotWheelStatus()') : ''}
+                <div class="row">
+                    <button class="btn blue" style="flex: 2" onclick="sendRequest('${t.id}', false, ${t.hasEquip ? 'document.getElementById(\'equip_manual_'+t.id+'\').value' : 'null'}, ${t.id === 'hotWheelStatus' ? 'getManualHotWheelStatus()' : 'null'})">单条发送</button>
+                    ${t.batch ? `<button class="btn purple" style="flex: 1" onclick="sendRequest('${t.id}', true, ${t.hasEquip ? 'document.getElementById(\'equip_manual_'+t.id+'\').value' : 'null'}, ${t.id === 'hotWheelStatus' ? 'getManualHotWheelStatus()' : 'null'})">批量</button>` : ''}
+                </div>
+                ${t.hasTimer ? `
+                    <div style="margin-top:12px; border-top:1px solid #2d3a4f; padding-top:10px">
+                        <div class="row">
+                            <div style="flex:1"><label>频率(秒)</label><input id="interval_${t.id}" type="number" value="10"></div>
+                            <button id="timerBtn_${t.id}" class="btn blue" style="flex:1" onclick="toggleTimer('${t.id}')">定时发送</button>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // --- 工具函数 ---
+
+    function normalizeHotWheelStatus(status) {
+        return { ...HOT_WHEEL_STATUS_DEFAULTS, ...(status || {}) };
+    }
+
+    function renderHotWheelStatusSettings(prefix, values, onchangeFactory) {
+        const status = normalizeHotWheelStatus(values);
+        const fields = HOT_WHEEL_STATUS_FIELDS.map(field => `
+            <div>
+                <label>${field.label} (${field.key})</label>
+                <input id="hotWheelStatus_${prefix}_${field.key}" value="${status[field.key]}" onchange="${onchangeFactory(field.key)}">
+            </div>
+        `).join('');
+        return `
+            <details class="status-settings">
+                <summary class="btn gray">设备状态设置</summary>
+                <div class="status-grid">${fields}</div>
+                <div class="status-hint">数字提示：0 = 正常；1 = 异常；其他数字也会原样发送并记录为具体状态值。不做前端校验。</div>
+            </details>
+        `;
+    }
+
+    function getManualHotWheelStatus() {
+        return HOT_WHEEL_STATUS_FIELDS.reduce((acc, field) => {
+            const input = document.getElementById(`hotWheelStatus_manual_${field.key}`);
+            acc[field.key] = input ? input.value : HOT_WHEEL_STATUS_DEFAULTS[field.key];
+            return acc;
+        }, {});
+    }
+
+    function getManualHotWheelStatusFromCache() {
+        try {
+            return normalizeHotWheelStatus(JSON.parse(localStorage.getItem(MANUAL_HOT_WHEEL_STATUS_CACHE_KEY) || "{}"));
+        } catch (e) {
+            return normalizeHotWheelStatus();
+        }
+    }
+
+    function saveManualHotWheelStatus() {
+        localStorage.setItem(MANUAL_HOT_WHEEL_STATUS_CACHE_KEY, JSON.stringify(getManualHotWheelStatus()));
+    }
+
+    function getManualEquipCache() {
+        try {
+            return JSON.parse(localStorage.getItem(MANUAL_EQUIP_CACHE_KEY) || "{}");
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function getManualEquipFromCache(type) {
+        return getManualEquipCache()[type] || '';
+    }
+
+    function saveManualEquip(type, value) {
+        const cache = getManualEquipCache();
+        cache[type] = value;
+        localStorage.setItem(MANUAL_EQUIP_CACHE_KEY, JSON.stringify(cache));
+    }
+
+    function log(msg, type = 'info') {
+        const logEl = document.getElementById('log');
+        const item = document.createElement('div');
+        item.className = 'log-item';
+        const time = new Date().toLocaleTimeString();
+        item.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${msg}</span>`;
+        logEl.appendChild(item);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function clearLog() { document.getElementById('log').innerHTML = ''; }
+    function getScenarioName(id) { return SCENARIOS.find(s => s.id === id)?.name || id; }
+
+    function saveIdxToHistory(idx) {
+        if (!idx) return;
+        let history = JSON.parse(localStorage.getItem('kafka_sim_idx_history') || "[]");
+        history = history.filter(item => item !== idx);
+        history.unshift(idx);
+        localStorage.setItem('kafka_sim_idx_history', JSON.stringify(history.slice(0, 15)));
+    }
+
+    function toggleHistory() {
+        const pop = document.getElementById('historyPopover');
+        pop.style.display = (pop.style.display === 'block') ? 'none' : 'block';
+        if (pop.style.display === 'block') {
+            const history = JSON.parse(localStorage.getItem('kafka_sim_idx_history') || "[]");
+            pop.innerHTML = history.length ? history.map(h => `<div class="history-item" onclick="useHistory('${h}')">${h}</div>`).join('') : '<div class="history-item">无历史记录</div>';
+        }
+    }
+
+    function useHistory(idx) {
+        document.getElementById('idx').value = idx;
+        document.getElementById('historyPopover').style.display = 'none';
+        log(`已从历史记录恢复 ID: ${idx}`, 'success');
+    }
+
+    function saveConfig() {
+        const config = {
+            apiBase: document.getElementById('apiBase').value,
+            equipCode: document.getElementById('equipCode').value,
+            mode: document.getElementById('mode').value,
+            carriageCount: document.getElementById('carriageCount').value,
+            equipNumbers: document.getElementById('equipNumbers').value,
+            autoId: document.getElementById('autoId').checked
+        };
+        localStorage.setItem('kafka_sim_v3_config', JSON.stringify(config));
+    }
+
+    function loadConfig() {
+        const config = JSON.parse(localStorage.getItem('kafka_sim_v3_config') || "{}");
+        if (config.apiBase) document.getElementById('apiBase').value = config.apiBase;
+        if (config.equipCode) document.getElementById('equipCode').value = config.equipCode;
+        if (config.mode) document.getElementById('mode').value = config.mode;
+        if (config.carriageCount) document.getElementById('carriageCount').value = config.carriageCount;
+        if (config.equipNumbers) document.getElementById('equipNumbers').value = config.equipNumbers;
+        if (config.autoId !== undefined) document.getElementById('autoId').checked = config.autoId;
+    }
+
+    function saveWorkflowToCache() { localStorage.setItem('kafka_sim_v3_workflow', JSON.stringify(workflowSteps)); }
+    function loadWorkflowFromCache() {
+        const cached = localStorage.getItem('kafka_sim_v3_workflow');
+        if (cached) { workflowSteps = JSON.parse(cached); renderWorkflow(); return true; }
+        return false;
+    }
+
+    // 绑定配置保存
+    ['apiBase', 'equipCode', 'mode', 'carriageCount', 'equipNumbers', 'autoId'].forEach(id => {
+        document.getElementById(id).addEventListener('change', saveConfig);
+    });
+
+    // 页面加载
+    window.onload = init;
+</script>
+</body>
+</html>
