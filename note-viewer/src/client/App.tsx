@@ -3,10 +3,11 @@ import type { FileContent, PortalData, TreeNode } from "../shared/types";
 import { PortalHome } from "./components/PortalHome";
 import { Workspace } from "./components/Workspace";
 import { api } from "./lib/api";
+import { parseMarkdownNavigationTarget } from "./lib/markdown";
 
 type ViewState =
   | { mode: "home" }
-  | { mode: "workspace"; path: string };
+  | { mode: "workspace"; path: string; anchor?: string };
 
 function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -118,7 +119,24 @@ export function App() {
       return;
     }
     void refreshWorkspace(view.path);
-  }, [refreshWorkspace, view]);
+  }, [refreshWorkspace, view.mode, view.mode === "workspace" ? view.path : undefined]);
+
+  useEffect(() => {
+    if (view.mode !== "workspace" || !view.anchor || currentFile?.path !== view.path) {
+      return;
+    }
+
+    const anchor = decodeURIComponent(view.anchor);
+    const scrollToAnchor = () => {
+      const target =
+        document.getElementById(anchor) ||
+        document.getElementById(view.anchor || "");
+      target?.scrollIntoView({ block: "start" });
+    };
+
+    const frameId = window.requestAnimationFrame(scrollToAnchor);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [currentFile, view]);
 
   useEffect(() => {
     const eventSource = new EventSource(api.eventsUrl());
@@ -144,7 +162,8 @@ export function App() {
   }, [loadFile, loadPortal, refreshWorkspace]);
 
   const handleOpenPath = useCallback((path: string) => {
-    setView({ mode: "workspace", path });
+    const target = parseMarkdownNavigationTarget(path);
+    setView({ mode: "workspace", path: target.path, anchor: target.anchor });
   }, []);
 
   const handleBackHome = useCallback(() => {
@@ -165,7 +184,7 @@ export function App() {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <p className="app-header__eyebrow">Note Viewer</p>
+          <p className="app-header__eyebrow">笔记预览器</p>
           <h1>{headerTitle}</h1>
         </div>
         <p className="app-header__status">
