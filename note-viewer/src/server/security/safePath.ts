@@ -15,6 +15,10 @@ export function toPosixPath(value: string): string {
   return value.replaceAll("\\", "/").replace(/^\/+/, "");
 }
 
+export function normalizeClientRelativePath(raw: string): string {
+  return decodeClientPath(raw);
+}
+
 export function isIgnoredPath(relativePath: string): boolean {
   return toPosixPath(relativePath)
     .split("/")
@@ -45,7 +49,7 @@ function decodeClientPath(raw: string): string {
 }
 
 export async function resolveContentPath(relativePath: string, config: ViewerConfig): Promise<string> {
-  const safeRelative = decodeClientPath(relativePath);
+  const safeRelative = normalizeClientRelativePath(relativePath);
   const contentRootReal = await realpath(config.contentRoot);
   const candidate = path.resolve(contentRootReal, safeRelative);
 

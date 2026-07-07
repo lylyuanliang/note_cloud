@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ViewerConfig } from "../../shared/types";
 import { getAssetInfo, readRepoReadme, readTextFile } from "./readContent";
 
@@ -13,6 +13,12 @@ async function fixture(): Promise<ViewerConfig> {
 }
 
 describe("readContent", () => {
+  afterEach(() => {
+    vi.resetModules();
+    vi.restoreAllMocks();
+    vi.doUnmock("node:fs/promises");
+  });
+
   it("reads markdown as markdown content", async () => {
     const config = await fixture();
     await writeFile(join(config.contentRoot, "readme.md"), "# 标题");
@@ -29,12 +35,47 @@ describe("readContent", () => {
     expect(file.language).toBe("yaml");
   });
 
+  it("returns canonical posix response path for text files", async () => {
+    const config = await fixture();
+    await writeFile(join(config.contentRoot, "readme.md"), "# 标题");
+    const file = await readTextFile("a/../readme.md", config);
+    expect(file.path).toBe("readme.md");
+    expect(file.name).toBe("readme.md");
+    expect(file.kind).toBe("markdown");
+  });
+
   it("reads only REPO_ROOT README for portal", async () => {
     const config = await fixture();
     await writeFile(join(config.repoRoot, "README.md"), "# 仓库");
     const readme = await readRepoReadme(config);
     expect(readme?.path).toBe("README.md");
     expect(readme?.content).toContain("# 仓库");
+  });
+
+  it("does not read repo README symlink that escapes repo root", async () => {
+    const config = await fixture();
+    const repoReadme = join(config.repoRoot, "README.md");
+    const readFile = vi.fn();
+    vi.doMock("node:fs/promises", async () => {
+      const actual = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+      return {
+        ...actual,
+        lstat: vi.fn(async (target: string) => {
+          if (target === repoReadme) {
+            return {
+              isSymbolicLink: (): boolean => true,
+              isFile: (): boolean => false
+            };
+          }
+          return actual.lstat(target);
+        }),
+        readFile
+      };
+    });
+
+    const { readRepoReadme: readRepoReadmeWithMock } = await import("./readContent");
+    await expect(readRepoReadmeWithMock(config)).resolves.toBeUndefined();
+    expect(readFile).not.toHaveBeenCalled();
   });
 
   it("rejects unsupported extension", async () => {

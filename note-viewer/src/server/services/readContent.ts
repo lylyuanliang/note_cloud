@@ -1,7 +1,7 @@
-import { access, readFile, stat } from "node:fs/promises";
+import { lstat, readFile, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 import type { FileContent, FileKind, ViewerConfig } from "../../shared/types";
-import { resolveContentPath, toPosixPath } from "../security/safePath";
+import { normalizeClientRelativePath, resolveContentPath } from "../security/safePath";
 
 const textLanguages = new Map<string, string>([
   [".txt", "text"],
@@ -46,40 +46,59 @@ export function getLanguageByName(name: string): string | undefined {
 }
 
 export async function readTextFile(relativePath: string, config: ViewerConfig): Promise<FileContent> {
-  const kind = getFileKindByName(relativePath);
+  const safeRelativePath = normalizeClientRelativePath(relativePath);
+  const kind = getFileKindByName(safeRelativePath);
   if (kind !== "markdown" && kind !== "text") {
     throw new Error("不支持的文件类型");
   }
 
-  const absolutePath = await resolveContentPath(relativePath, config);
+  const absolutePath = await resolveContentPath(safeRelativePath, config);
   const [content, info] = await Promise.all([readFile(absolutePath, "utf8"), stat(absolutePath)]);
 
   return {
-    path: toPosixPath(relativePath),
-    name: path.basename(relativePath),
+    path: safeRelativePath,
+    name: path.posix.basename(safeRelativePath),
     kind,
-    language: kind === "text" ? getLanguageByName(relativePath) : undefined,
+    language: kind === "text" ? getLanguageByName(safeRelativePath) : undefined,
     content,
     updatedAt: info.mtime.toISOString()
   };
 }
 
 export async function readRepoReadme(config: ViewerConfig): Promise<FileContent | undefined> {
-  const absolutePath = path.join(config.repoRoot, "README.md");
+  const repoRootReal = await realpath(config.repoRoot);
+  const absolutePath = path.join(repoRootReal, "README.md");
+
   try {
-    await access(absolutePath);
-  } catch {
+    const readmeLinkInfo = await lstat(absolutePath);
+    if (readmeLinkInfo.isSymbolicLink() || !readmeLinkInfo.isFile()) {
+      return undefined;
+    }
+
+    const readmeReal = await realpath(absolutePath);
+    const relativeToRoot = path.relative(repoRootReal, readmeReal);
+    if (relativeToRoot.startsWith("..") || path.isAbsolute(relativeToRoot)) {
+      return undefined;
+    }
+
+    const [content, info] = await Promise.all([readFile(readmeReal, "utf8"), stat(readmeReal)]);
+    if (!info.isFile()) {
+      return undefined;
+    }
+
+    return {
+      path: "README.md",
+      name: "README.md",
+      kind: "markdown",
+      content,
+      updatedAt: info.mtime.toISOString()
+    };
+  } catch (error) {
+    if (error instanceof Error && "code" in error && (error.code === "ENOENT" || error.code === "ENOTDIR")) {
+      return undefined;
+    }
     return undefined;
   }
-
-  const [content, info] = await Promise.all([readFile(absolutePath, "utf8"), stat(absolutePath)]);
-  return {
-    path: "README.md",
-    name: "README.md",
-    kind: "markdown",
-    content,
-    updatedAt: info.mtime.toISOString()
-  };
 }
 
 export async function getAssetInfo(
