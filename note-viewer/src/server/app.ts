@@ -18,6 +18,10 @@ export function createApp(config: ViewerConfig) {
     res.json({ ok: true, basePath: config.publicBasePath });
   });
 
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "Not Found" });
+  });
+
   app.get(/(^|\/)runtime-config\.js$/, (_req, res) => {
     res.type("application/javascript");
     res.send(
@@ -31,10 +35,6 @@ export function createApp(config: ViewerConfig) {
   app.use("/api/asset", createAssetRouter(config));
   app.use("/api/search", createSearchRouter(config));
   app.use("/api/events", createEventsRouter());
-
-  app.use("/api", (_req, res) => {
-    res.status(404).json({ error: "Not Found" });
-  });
 
   app.use(express.static(clientDist));
   app.get("*", (_req, res) => {

@@ -76,3 +76,30 @@
 3. `npm run build`
    - result: exit `0`
    - note: the existing non-failing `runtime-config.js` warning from Vite still appears during client build
+
+## Second Fix Update
+
+- status: `FIXED`
+- scope: re-review follow-up for the Important finding on `/api/runtime-config.js`
+- branch: `feature/note-viewer`
+- commit: `34c8b5f` (`fix: serve deep runtime config and api 404`)
+
+### Changed
+
+- Added a regression test that asserts `/api/runtime-config.js` returns the JSON 404 response instead of the runtime config script.
+- Moved the `/api` 404 middleware ahead of the deep `runtime-config.js` route so the API namespace is rejected before the script matcher runs.
+- Kept the deep-link `runtime-config.js` handler intact, so paths like `/topic/runtime-config.js` still serve the JavaScript config payload.
+
+### Verification
+
+1. `npm test -- src/server/app.test.ts`
+   - result: exit `0`
+   - coverage: root runtime config, deep-link runtime config, `/api/runtime-config.js` JSON 404
+2. `npm run typecheck`
+   - result: exit `0`
+3. `npm test`
+   - result: exit `0`
+   - tests passed: `5` files, `26` tests
+4. `npm run build`
+   - result: exit `0`
+   - note: the existing non-failing `runtime-config.js` warning from Vite still appears during client build
