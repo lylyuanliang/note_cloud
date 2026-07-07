@@ -1,0 +1,13 @@
+:root {
+  color: #17202a;
+  background: #f6f7f9;
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  padding: 32px;
+}
