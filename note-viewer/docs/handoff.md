@@ -6,9 +6,11 @@
 
 1. `docs/superpowers/specs/2026-07-07-note-viewer-design.md`
 2. `docs/superpowers/plans/2026-07-07-note-viewer.md`
-3. `note-viewer/README.md`
-4. `note-viewer/docker-compose.yml`
-5. `note-viewer/Dockerfile`
+3. `docs/superpowers/specs/2026-07-07-note-viewer-performance-ui-design.md`
+4. `docs/superpowers/plans/2026-07-07-note-viewer-performance-ui.md`
+5. `note-viewer/README.md`
+6. `note-viewer/docker-compose.yml`
+7. `note-viewer/Dockerfile`
 
 ## Docker 运行说明
 
@@ -47,6 +49,27 @@ environment:
 - `PUBLIC_BASE_PATH`：前端资源和路由的基础路径，默认用于根路径部署，挂到子路径时必须同步修改。
 - `WATCH_USE_POLLING`：文件监听是否使用轮询。Docker Desktop 或文件事件不稳定时可临时设为 `true`，平时保持 `false`。
 
+## 性能架构
+
+后端通过 `note-viewer/src/server/services/repositoryStore.ts` 维护内存缓存：
+
+- `getTree()` 返回缓存目录树。
+- `search(query)` 在缓存搜索索引中检索。
+- `refresh()` 重新扫描内容目录并重建搜索索引。
+- `getPortalData()` 复用缓存目录树生成首页入口。
+
+搜索索引由 `note-viewer/src/server/services/searchIndex.ts` 构建。当前只索引文件名、目录名、Markdown 一级标题和目录 README 一级标题，不做全文搜索。
+
+`watchRepository.ts` 在文件变化后 debounce 调用 `store.refresh()`，刷新成功后再通过 SSE 广播 `tree-changed` 和 `file-changed`。
+
+## 前端交互
+
+- `App.tsx` 会缓存已加载的目录树，切换文件时不会重复调用 `/api/tree`。
+- `DirectoryTree.tsx` 支持目录节点展开/折叠，并自动展开当前路径的祖先目录。
+- `Workspace.tsx` 支持整体收起左侧目录。
+- `SearchBox.tsx` 会忽略过期搜索响应，避免旧结果覆盖新查询。
+- 主题模式保存在 `localStorage` 的 `note-viewer-theme-mode`，支持 `system`、`light`、`dark`。
+
 ## 补充边界
 
 - 仓库根目录只读挂载到 `/workspace`。
@@ -54,6 +77,7 @@ environment:
 - 所有浏览器传入路径都必须走 `safePath`。
 - 前端 URL 必须支持 `PUBLIC_BASE_PATH`。
 - 第一版没有写 API。
+- 缓存刷新失败时应保留上一份可用缓存，不应把空状态推给用户。
 
 ## 验证命令
 
@@ -63,6 +87,8 @@ npm test
 npm run build
 docker compose up --build
 ```
+
+当前 Windows/Docker Desktop 环境可能因为 Docker Hub token 获取超时导致 `docker compose up --build` 无法拉取 `node:20-alpine`。遇到这种情况不要宣称 Docker 构建通过，应记录具体网络错误。
 
 ## 关键边界
 
