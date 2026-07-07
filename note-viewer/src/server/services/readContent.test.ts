@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -52,30 +52,23 @@ describe("readContent", () => {
     expect(readme?.content).toContain("# 仓库");
   });
 
-  it("does not read repo README symlink that escapes repo root", async () => {
+  it("does not read repo README symlink that escapes repo root", async (context) => {
     const config = await fixture();
+    const externalRoot = await mkdtemp(join(tmpdir(), "note-viewer-external-"));
     const repoReadme = join(config.repoRoot, "README.md");
-    const readFile = vi.fn();
-    vi.doMock("node:fs/promises", async () => {
-      const actual = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
-      return {
-        ...actual,
-        lstat: vi.fn(async (target: string) => {
-          if (target === repoReadme) {
-            return {
-              isSymbolicLink: (): boolean => true,
-              isFile: (): boolean => false
-            };
-          }
-          return actual.lstat(target);
-        }),
-        readFile
-      };
-    });
+    const externalReadme = join(externalRoot, "outside.md");
+    await writeFile(externalReadme, "# 外部 README");
 
-    const { readRepoReadme: readRepoReadmeWithMock } = await import("./readContent");
-    await expect(readRepoReadmeWithMock(config)).resolves.toBeUndefined();
-    expect(readFile).not.toHaveBeenCalled();
+    try {
+      await symlink(externalReadme, repoReadme);
+    } catch (error) {
+      if (isWindowsSymlinkPrivilegeError(error)) {
+        context.skip();
+      }
+      throw error;
+    }
+
+    await expect(readRepoReadme(config)).resolves.toBeUndefined();
   });
 
   it("rejects unsupported extension", async () => {
@@ -92,3 +85,11 @@ describe("readContent", () => {
     await expect(getAssetInfo("a.svg", config)).rejects.toThrow("SVG");
   });
 });
+
+function isWindowsSymlinkPrivilegeError(error: unknown): error is NodeJS.ErrnoException {
+  if (!(error instanceof Error) || !("code" in error)) {
+    return false;
+  }
+
+  return error.code === "EPERM" || error.code === "EACCES";
+}
