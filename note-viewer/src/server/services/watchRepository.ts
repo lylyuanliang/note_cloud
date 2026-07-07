@@ -25,7 +25,7 @@ export function addEventsClient(res: Response) {
   res.on("close", () => clients.delete(res));
 }
 
-export function startRepositoryWatcher(config: ViewerConfig) {
+export function startRepositoryWatcher(config: ViewerConfig, onRepositoryChanged?: () => Promise<void>) {
   const watcher = chokidar.watch(config.contentRoot, {
     followSymlinks: false,
     ignoreInitial: true,
@@ -46,8 +46,15 @@ export function startRepositoryWatcher(config: ViewerConfig) {
       clearTimeout(debounceTimer);
     }
     debounceTimer = setTimeout(() => {
-      emit("tree-changed");
-      emit("file-changed");
+      void (async () => {
+        try {
+          await onRepositoryChanged?.();
+          emit("tree-changed");
+          emit("file-changed");
+        } catch (error) {
+          console.error("failed to refresh repository cache", error);
+        }
+      })();
     }, 300);
   });
 

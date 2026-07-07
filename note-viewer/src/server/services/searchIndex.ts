@@ -1,6 +1,14 @@
 import type { SearchResult, TreeNode, ViewerConfig } from "../../shared/types";
 import { readTextFile } from "./readContent";
 
+export type SearchIndexEntry = {
+  title: string;
+  path: string;
+  type: "file" | "directory";
+  snippet?: string;
+  haystack: string;
+};
+
 function firstHeading(content: string): string | undefined {
   return content
     .split(/\r?\n/)
@@ -8,37 +16,36 @@ function firstHeading(content: string): string | undefined {
     ?.replace(/^#\s+/, "");
 }
 
-export async function searchNotes(
-  query: string,
-  tree: TreeNode,
-  config: ViewerConfig
-): Promise<SearchResult[]> {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) {
-    return [];
-  }
+function normalize(value: string): string {
+  return value.trim().toLowerCase();
+}
 
-  const results: SearchResult[] = [];
+export async function buildSearchIndex(tree: TreeNode, config: ViewerConfig): Promise<SearchIndexEntry[]> {
+  const entries: SearchIndexEntry[] = [];
 
   async function walk(node: TreeNode): Promise<void> {
-    if (node.name.toLowerCase().includes(normalized)) {
-      results.push({ title: node.name, path: node.path, type: node.type });
-    }
+    entries.push({
+      title: node.name,
+      path: node.path,
+      type: node.type,
+      haystack: normalize(node.name)
+    });
 
     if (node.type === "directory" && node.overviewPath) {
       try {
         const file = await readTextFile(node.overviewPath, config);
         const heading = firstHeading(file.content);
-        if (heading?.toLowerCase().includes(normalized)) {
-          results.push({
+        if (heading) {
+          entries.push({
             title: heading,
             path: node.path,
             type: "directory",
-            snippet: node.overviewPath
+            snippet: node.overviewPath,
+            haystack: normalize(heading)
           });
         }
       } catch {
-        // Ignore unreadable overview content and continue traversal.
+        // Ignore unreadable overview content and continue indexing.
       }
     }
 
@@ -46,16 +53,17 @@ export async function searchNotes(
       try {
         const file = await readTextFile(node.path, config);
         const heading = firstHeading(file.content);
-        if (heading?.toLowerCase().includes(normalized)) {
-          results.push({
+        if (heading) {
+          entries.push({
             title: heading,
             path: node.path,
             type: "file",
-            snippet: node.name
+            snippet: node.name,
+            haystack: normalize(heading)
           });
         }
       } catch {
-        // Ignore unreadable markdown content and continue traversal.
+        // Ignore unreadable markdown content and continue indexing.
       }
     }
 
@@ -65,5 +73,17 @@ export async function searchNotes(
   }
 
   await walk(tree);
-  return results.slice(0, 50);
+  return entries;
+}
+
+export function searchIndex(query: string, index: SearchIndexEntry[]): SearchResult[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return [];
+  }
+
+  return index
+    .filter((entry) => entry.haystack.includes(normalized))
+    .slice(0, 50)
+    .map(({ title, path, type, snippet }) => ({ title, path, type, snippet }));
 }

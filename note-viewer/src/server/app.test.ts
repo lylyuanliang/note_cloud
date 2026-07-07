@@ -3,8 +3,9 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import type { ViewerConfig } from "../shared/types";
+import type { PortalData, SearchResult, TreeNode, ViewerConfig } from "../shared/types";
 import { createApp } from "./app";
+import type { RepositoryStore } from "./services/repositoryStore";
 
 async function fixture(): Promise<ViewerConfig> {
   const repoRoot = await mkdtemp(join(tmpdir(), "note-viewer-"));
@@ -65,6 +66,30 @@ describe("server app", () => {
       type: "directory",
       children: []
     });
+  });
+
+  it("serves tree, search, and portal data from the repository store", async () => {
+    const config = await fixture();
+    const tree: TreeNode = { name: "笔记", path: "", type: "directory", children: [] };
+    const results: SearchResult[] = [{ title: "Spring", path: "spring.md", type: "file" }];
+    const portal: PortalData = { entryCards: [] };
+    const store: RepositoryStore = {
+      getTree: async () => tree,
+      search: async () => results,
+      refresh: async () => undefined,
+      getPortalData: async () => portal
+    };
+    const app = createApp(config, store);
+    const server = http.createServer(app);
+    servers.push(server);
+
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("missing address");
+
+    await expect(fetch(`http://127.0.0.1:${address.port}/api/tree`).then((res) => res.json())).resolves.toEqual(tree);
+    await expect(fetch(`http://127.0.0.1:${address.port}/api/search?q=spring`).then((res) => res.json())).resolves.toEqual(results);
+    await expect(fetch(`http://127.0.0.1:${address.port}/api/portal`).then((res) => res.json())).resolves.toEqual(portal);
   });
 
   it("returns JSON 404 for api runtime-config.js", async () => {
