@@ -1,0 +1,9 @@
+.worktrees/
+worktrees/
+
+node_modules/
+note-viewer/node_modules/
+note-viewer/dist/
+note-viewer/dist-types/
+
+*.log
