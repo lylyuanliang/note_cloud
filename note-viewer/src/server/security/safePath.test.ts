@@ -30,6 +30,11 @@ describe("safePath", () => {
     expect(resolved).toBe(await realpath(join(config.contentRoot, "学习记录", "readme.md")));
   });
 
+  it("rejects client paths containing backslashes", async () => {
+    const config = await fixture();
+    await expect(resolveContentPath("学习记录\\readme.md", config)).rejects.toThrow(/POSIX|反斜杠/);
+  });
+
   it("rejects absolute paths", async () => {
     const config = await fixture();
     await expect(resolveContentPath("/etc/passwd", config)).rejects.toThrow("绝对路径");

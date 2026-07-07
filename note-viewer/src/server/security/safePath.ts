@@ -26,11 +26,14 @@ function decodeClientPath(raw: string): string {
   if (raw.includes("\u0000")) {
     throw new Error("非法字符：路径包含 NUL 字符");
   }
+  if (raw.includes("\\")) {
+    throw new Error("非法路径：客户端路径必须使用 POSIX / 分隔符，不能包含反斜杠");
+  }
   if (path.posix.isAbsolute(raw) || path.win32.isAbsolute(raw)) {
     throw new Error("非法路径：不允许绝对路径");
   }
 
-  const normalized = path.posix.normalize(toPosixPath(raw || "."));
+  const normalized = path.posix.normalize(raw || ".");
   if (normalized === ".." || normalized.startsWith("../")) {
     throw new Error("非法路径：路径越界");
   }
