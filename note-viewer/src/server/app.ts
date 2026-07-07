@@ -18,6 +18,13 @@ export function createApp(config: ViewerConfig) {
     res.json({ ok: true, basePath: config.publicBasePath });
   });
 
+  app.use("/api/tree", createTreeRouter(config));
+  app.use("/api/portal", createPortalRouter(config));
+  app.use("/api/file", createFileRouter(config));
+  app.use("/api/asset", createAssetRouter(config));
+  app.use("/api/search", createSearchRouter(config));
+  app.use("/api/events", createEventsRouter());
+
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Not Found" });
   });
@@ -28,13 +35,6 @@ export function createApp(config: ViewerConfig) {
       `window.__NOTE_VIEWER_CONFIG__ = ${JSON.stringify({ publicBasePath: config.publicBasePath })};`
     );
   });
-
-  app.use("/api/tree", createTreeRouter(config));
-  app.use("/api/portal", createPortalRouter(config));
-  app.use("/api/file", createFileRouter(config));
-  app.use("/api/asset", createAssetRouter(config));
-  app.use("/api/search", createSearchRouter(config));
-  app.use("/api/events", createEventsRouter());
 
   app.use(express.static(clientDist));
   app.get("*", (_req, res) => {

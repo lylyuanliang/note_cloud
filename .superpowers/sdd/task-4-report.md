@@ -103,3 +103,29 @@
 4. `npm run build`
    - result: exit `0`
    - note: the existing non-failing `runtime-config.js` warning from Vite still appears during client build
+
+## Third Fix Update
+
+- status: `FIXED`
+- scope: re-review follow-up for the Critical/Important finding on `/api` middleware order and API reachability
+- branch: `feature/note-viewer`
+
+### Changed
+
+- Moved the blanket `/api` JSON 404 handler to after the formal API routers in `src/server/app.ts` so `/api/tree`, `/api/portal`, `/api/file`, `/api/asset`, `/api/search`, and `/api/events` remain reachable.
+- Kept the `/api` 404 handler ahead of the deep `runtime-config.js` matcher so `/api/runtime-config.js` still returns JSON 404.
+- Added a regression test that hits `/api/tree` successfully, alongside the existing `/api/runtime-config.js` 404 coverage.
+
+### Verification
+
+1. `npm test -- src/server/app.test.ts`
+   - result: exit `0`
+   - tests passed: `4` tests
+2. `npm run typecheck`
+   - result: exit `0`
+3. `npm test`
+   - result: exit `0`
+   - tests passed: `5` files, `27` tests
+4. `npm run build`
+   - result: exit `0`
+   - note: the existing non-failing `runtime-config.js` warning from Vite still appears during client build

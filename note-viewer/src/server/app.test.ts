@@ -47,6 +47,26 @@ describe("server app", () => {
     expect(await deepResponse.text()).toContain("/notes/");
   });
 
+  it("serves the tree api", async () => {
+    const config = await fixture();
+    const app = createApp(config);
+    const server = http.createServer(app);
+    servers.push(server);
+
+    await new Promise<void>((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("missing address");
+
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/tree`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("application/json");
+    await expect(response.json()).resolves.toMatchObject({
+      path: "",
+      type: "directory",
+      children: []
+    });
+  });
+
   it("returns JSON 404 for api runtime-config.js", async () => {
     const config = await fixture();
     const app = createApp(config);
