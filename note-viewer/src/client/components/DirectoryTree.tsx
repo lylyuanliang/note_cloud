@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import type { TreeNode } from "../../shared/types";
 
 type DirectoryTreeProps = {
@@ -6,42 +7,81 @@ type DirectoryTreeProps = {
   onSelect: (node: TreeNode) => void;
 };
 
+function collectDirectoryPaths(node: TreeNode, paths = new Set<string>()): Set<string> {
+  if (node.type === "directory" && node.path) {
+    paths.add(node.path);
+  }
+  for (const child of node.children || []) {
+    collectDirectoryPaths(child, paths);
+  }
+  return paths;
+}
+
+function selectedAncestorPaths(selectedPath: string): string[] {
+  const segments = selectedPath.split("/").filter(Boolean);
+  return segments.slice(0, -1).map((_, index) => segments.slice(0, index + 1).join("/"));
+}
+
 function TreeBranch({
   node,
   selectedPath,
   onSelect,
-  depth
+  depth,
+  expandedPaths,
+  onToggle
 }: {
   node: TreeNode;
   selectedPath: string;
   onSelect: (node: TreeNode) => void;
   depth: number;
+  expandedPaths: Set<string>;
+  onToggle: (node: TreeNode) => void;
 }) {
   const isSelected =
     node.path === selectedPath || (node.type === "directory" && selectedPath.startsWith(`${node.path}/`));
+  const hasChildren = node.type === "directory" && Boolean(node.children?.length);
+  const isExpanded = !node.path || expandedPaths.has(node.path);
 
   return (
     <li className="tree__item">
-      <button
-        className={`tree__button ${isSelected ? "is-active" : ""}`}
-        style={{ paddingLeft: `${depth * 14 + 12}px` }}
-        type="button"
-        onClick={() => onSelect(node)}
-      >
-        <span className="tree__icon" aria-hidden="true">
-          {node.type === "directory" ? "▾" : "•"}
-        </span>
-        <span className="tree__label">{node.name}</span>
-      </button>
-      {node.type === "directory" && node.children && node.children.length > 0 ? (
+      <div className={`tree__row ${isSelected ? "is-active" : ""}`} style={{ paddingLeft: `${depth * 14 + 8}px` }}>
+        {hasChildren ? (
+          <button
+            className="tree__toggle"
+            type="button"
+            aria-label={`${isExpanded ? "折叠" : "展开"} ${node.name}`}
+            aria-expanded={isExpanded}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggle(node);
+            }}
+          >
+            <span aria-hidden="true">{isExpanded ? "▾" : "▸"}</span>
+          </button>
+        ) : (
+          <span className="tree__toggle tree__toggle--placeholder" aria-hidden="true">
+            •
+          </span>
+        )}
+        <button
+          className="tree__button"
+          type="button"
+          onClick={() => onSelect(node)}
+        >
+          <span className="tree__label">{node.name}</span>
+        </button>
+      </div>
+      {hasChildren && isExpanded ? (
         <ul className="tree__list">
-          {node.children.map((child) => (
+          {(node.children ?? []).map((child) => (
             <TreeBranch
               key={child.path}
               node={child}
               selectedPath={selectedPath}
               onSelect={onSelect}
               depth={depth + 1}
+              expandedPaths={expandedPaths}
+              onToggle={onToggle}
             />
           ))}
         </ul>
@@ -51,6 +91,46 @@ function TreeBranch({
 }
 
 export function DirectoryTree({ tree, selectedPath, onSelect }: DirectoryTreeProps) {
+  const initialExpanded = useMemo(() => collectDirectoryPaths(tree), [tree]);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => initialExpanded);
+
+  useEffect(() => {
+    setExpandedPaths((current) => {
+      const next = new Set(current);
+      for (const path of selectedAncestorPaths(selectedPath)) {
+        next.add(path);
+      }
+      return next;
+    });
+  }, [selectedPath]);
+
+  useEffect(() => {
+    setExpandedPaths((current) => {
+      const next = new Set(current);
+      for (const path of initialExpanded) {
+        if (!next.has(path)) {
+          next.add(path);
+        }
+      }
+      return next;
+    });
+  }, [initialExpanded]);
+
+  const handleToggle = (node: TreeNode) => {
+    if (!node.path) {
+      return;
+    }
+    setExpandedPaths((current) => {
+      const next = new Set(current);
+      if (next.has(node.path)) {
+        next.delete(node.path);
+      } else {
+        next.add(node.path);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="tree">
       <div className="tree__header">
@@ -65,6 +145,8 @@ export function DirectoryTree({ tree, selectedPath, onSelect }: DirectoryTreePro
             selectedPath={selectedPath}
             onSelect={onSelect}
             depth={0}
+            expandedPaths={expandedPaths}
+            onToggle={handleToggle}
           />
         ))}
       </ul>
