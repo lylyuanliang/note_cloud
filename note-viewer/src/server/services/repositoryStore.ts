@@ -42,11 +42,24 @@ function collectPaths(tree: TreeNode): Set<string> {
 export function createRepositoryStore(config: ViewerConfig): RepositoryStore {
   let snapshot: RepositorySnapshot | undefined;
   let refreshPromise: Promise<void> | undefined;
+  let queuedRefresh = false;
 
   async function refreshSnapshot(): Promise<void> {
     const tree = await scanTree(config);
     const index = await buildSearchIndex(tree, config);
     snapshot = { tree, index };
+  }
+
+  function startRefresh(): Promise<void> {
+    refreshPromise = (async () => {
+      do {
+        queuedRefresh = false;
+        await refreshSnapshot();
+      } while (queuedRefresh);
+    })().finally(() => {
+        refreshPromise = undefined;
+    });
+    return refreshPromise;
   }
 
   async function ensureReady(): Promise<RepositorySnapshot> {
@@ -55,9 +68,7 @@ export function createRepositoryStore(config: ViewerConfig): RepositoryStore {
     }
 
     if (!refreshPromise) {
-      refreshPromise = refreshSnapshot().finally(() => {
-        refreshPromise = undefined;
-      });
+      startRefresh();
     }
 
     await refreshPromise;
@@ -75,12 +86,12 @@ export function createRepositoryStore(config: ViewerConfig): RepositoryStore {
       return searchIndex(query, (await ensureReady()).index);
     },
     async refresh() {
-      if (!refreshPromise) {
-        refreshPromise = refreshSnapshot().finally(() => {
-          refreshPromise = undefined;
-        });
+      if (refreshPromise) {
+        queuedRefresh = true;
+        await refreshPromise;
+        return;
       }
-      await refreshPromise;
+      await startRefresh();
     },
     async getPortalData() {
       const tree = (await ensureReady()).tree;

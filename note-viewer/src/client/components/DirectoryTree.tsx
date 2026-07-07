@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { TreeNode } from "../../shared/types";
 
 type DirectoryTreeProps = {
@@ -91,8 +91,7 @@ function TreeBranch({
 }
 
 export function DirectoryTree({ tree, selectedPath, onSelect }: DirectoryTreeProps) {
-  const initialExpanded = useMemo(() => collectDirectoryPaths(tree), [tree]);
-  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => initialExpanded);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => collectDirectoryPaths(tree));
 
   useEffect(() => {
     setExpandedPaths((current) => {
@@ -103,18 +102,6 @@ export function DirectoryTree({ tree, selectedPath, onSelect }: DirectoryTreePro
       return next;
     });
   }, [selectedPath]);
-
-  useEffect(() => {
-    setExpandedPaths((current) => {
-      const next = new Set(current);
-      for (const path of initialExpanded) {
-        if (!next.has(path)) {
-          next.add(path);
-        }
-      }
-      return next;
-    });
-  }, [initialExpanded]);
 
   const handleToggle = (node: TreeNode) => {
     if (!node.path) {

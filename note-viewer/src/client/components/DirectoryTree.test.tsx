@@ -64,4 +64,16 @@ describe("DirectoryTree", () => {
 
     expect(screen.getAllByRole("button", { name: "README.md" })).toHaveLength(1);
   });
+
+  test("keeps collapsed directories collapsed when the tree object refreshes", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<DirectoryTree tree={tree} selectedPath="" onSelect={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "折叠 学习记录" }));
+    expect(screen.queryByRole("button", { name: "README.md" })).toBeNull();
+
+    rerender(<DirectoryTree tree={{ ...tree }} selectedPath="" onSelect={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "README.md" })).toBeNull();
+  });
 });

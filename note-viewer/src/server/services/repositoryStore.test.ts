@@ -36,6 +36,14 @@ function tree(name = "notes", children: TreeNode[] = []): TreeNode {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
 describe("repositoryStore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -83,6 +91,29 @@ describe("repositoryStore", () => {
     await expect(store.getTree()).resolves.toBe(secondTree);
     await expect(store.search("new")).resolves.toEqual([{ title: "new.md", path: "new.md", type: "file" }]);
     expect(scanTree).toHaveBeenCalledTimes(2);
+  });
+
+  it("runs a queued refresh after an in-flight refresh finishes", async () => {
+    const firstTree = tree("first");
+    const secondTree = tree("second");
+    const thirdTree = tree("third");
+    const secondScan = deferred<TreeNode>();
+    scanTree
+      .mockResolvedValueOnce(firstTree)
+      .mockReturnValueOnce(secondScan.promise)
+      .mockResolvedValueOnce(thirdTree);
+    const { createRepositoryStore } = await import("./repositoryStore");
+    const store = createRepositoryStore(config);
+
+    await expect(store.getTree()).resolves.toBe(firstTree);
+    const firstRefresh = store.refresh();
+    const queuedRefresh = store.refresh();
+
+    secondScan.resolve(secondTree);
+    await Promise.all([firstRefresh, queuedRefresh]);
+
+    await expect(store.getTree()).resolves.toBe(thirdTree);
+    expect(scanTree).toHaveBeenCalledTimes(3);
   });
 
   it("builds portal data from the cached tree", async () => {

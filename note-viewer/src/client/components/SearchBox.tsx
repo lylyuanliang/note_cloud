@@ -16,6 +16,7 @@ export function SearchBox({ onOpenPath }: SearchBoxProps) {
   useEffect(() => {
     const trimmed = query.trim();
     if (!trimmed) {
+      requestIdRef.current += 1;
       setResults([]);
       setLoading(false);
       setError(undefined);
@@ -43,7 +44,9 @@ export function SearchBox({ onOpenPath }: SearchBoxProps) {
       }
     }, 250);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [query]);
 
   return (
