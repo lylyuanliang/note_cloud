@@ -84,7 +84,7 @@
 
 #### 2.7 [Agent相关](./笔记/教程/agent/readme.md)
 
-> 记录 AI Agent 工具使用教程，目前包含 Gemini CLI 登录配置。
+> 记录 AI Agent 工具使用教程，目前包含 Codex skills 安装说明和 Gemini CLI 登录配置。
 
 #### 2.8 [python相关](./笔记/教程/python/readme.md)
 
