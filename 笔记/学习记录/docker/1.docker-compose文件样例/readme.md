@@ -42,7 +42,13 @@
 
 [KRaft版 compose](./compose/kafka/docker-compose-kraft.yml)
 
-### 7. [MySQL](./compose/mysql/)
+### 7. [EMQX](./compose/emqx/)
+
+> EMQX MQTT Broker 样例，用于本地物联网设备接入、MQTT 消息收发和管理控制台测试。
+
+[docker-compose](./compose/emqx/docker-compose.yml)
+
+### 8. [MySQL](./compose/mysql/)
 
 > MySQL 5/8 和 Windows 挂载路径样例，用于本地数据库测试。
 
@@ -52,13 +58,19 @@
 
 [docker-compose windows挂载路径](./compose/mysql/docker-compose-win.yml)
 
-### 8. [Nginx](./compose/nginx/)
+### 9. [Node-RED](./compose/node-red/)
+
+> Node-RED 流程编排工具样例，用于本地规则编排、协议接入和事件流转演示。
+
+[docker-compose](./compose/node-red/docker-compose.yml)
+
+### 10. [Nginx](./compose/nginx/)
 
 > Nginx 反向代理和静态页面样例，用于本地 Web 入口、代理和端口转发测试。
 
 [docker-compose](./compose/nginx/docker-compose.yml)
 
-### 9. [Oracle](./compose/oracle/)
+### 11. [Oracle](./compose/oracle/)
 
 > Oracle 数据库样例，包含不同版本 compose 文件。
 
@@ -66,25 +78,25 @@
 
 [docker-compose-11g](./compose/oracle/docker-compose-11g.yml)
 
-### 10. [Portainer](./compose/portainer/)
+### 12. [Portainer](./compose/portainer/)
 
 > Portainer 容器管理界面样例，用于本地 Docker 可视化管理。
 
 [docker-compose](./compose/portainer/docker-compose.yml)
 
-### 11. [RabbitMQ](./compose/rabbitmq/)
+### 13. [RabbitMQ](./compose/rabbitmq/)
 
 > RabbitMQ 消息队列样例，用于本地消息收发、管理控制台和端口测试。
 
 [docker-compose](./compose/rabbitmq/docker-compose.yml)
 
-### 12. [RocketMQ](./compose/rocketmq/)
+### 14. [RocketMQ](./compose/rocketmq/)
 
 > RocketMQ 消息队列样例，包含 broker 配置文件。
 
 [docker-compose](./compose/rocketmq/docker-compose.yml)
 
-### 13. [Redis Local](./compose/redis_local/)
+### 15. [Redis Local](./compose/redis_local/)
 
 > Redis 单机样例，包含 Linux/Windows 路径挂载配置。
 
@@ -92,7 +104,7 @@
 
 [docker-compose windows路径挂载](./compose/redis_local/docker-compose-win.yml)
 
-### 14. [Redis Sentinel](./compose/redis-sentinel/)
+### 16. [Redis Sentinel](./compose/redis-sentinel/)
 
 > Redis 主从和哨兵样例，用于验证高可用切换和 Sentinel 配置。
 
@@ -102,13 +114,13 @@
 
 [说明](./compose/redis-sentinel/1.readme.md)
 
-### 15. [XXL-JOB](./compose/xxl-job/)
+### 17. [XXL-JOB](./compose/xxl-job/)
 
 > XXL-JOB 调度中心样例，用于本地任务调度服务测试。
 
 [docker-compose](./compose/xxl-job/docker-compose.yml)
 
-### 16. [YApi](./compose/yapi/)
+### 18. [YApi](./compose/yapi/)
 
 > YApi 接口管理平台样例，用于本地接口文档和 Mock 服务测试。
 

@@ -1,0 +1,25 @@
+services:
+  node-red:
+    image: nodered/node-red:latest
+    container_name: node-red
+    hostname: node-red
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+    ports:
+      # Node-RED editor and HTTP runtime
+      - "1880:1880"
+    volumes:
+      - node_red_data:/data
+    networks:
+      - liurl_net
+
+# 定义命名卷
+volumes:
+  node_red_data:
+    name: node_red_data
+
+networks:
+  liurl_net:
+    external: true
+    name: liurl_net

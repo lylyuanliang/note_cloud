@@ -1,0 +1,32 @@
+services:
+  emqx:
+    image: emqx/emqx:5.8.6
+    container_name: emqx
+    hostname: emqx
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Shanghai
+      # 固定节点名，避免 EMQX 持久化目录随容器 hostname 变化。
+      EMQX_NODE_NAME: emqx@emqx
+    ports:
+      # MQTT TCP
+      - "1883:1883"
+      # EMQX Dashboard / HTTP API: http://localhost:18083/
+      - "18083:18083"
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+    networks:
+      - liurl_net
+
+# 定义命名卷
+volumes:
+  emqx_data:
+    name: emqx_data
+  emqx_log:
+    name: emqx_log
+
+networks:
+  liurl_net:
+    external: true
+    name: liurl_net
