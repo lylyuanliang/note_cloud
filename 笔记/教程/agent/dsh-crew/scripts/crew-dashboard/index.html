@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSH Crew 看板</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#161a21; --line:#242a34; --fg:#e6e9ef; --muted:#8b93a1;
+    --run:#4c8dff; --ok:#35c98a; --bad:#ff5d5d; --warn:#e0a33e; --chip:#1d232c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.5 "Segoe UI","Microsoft YaHei",system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  h1{font-size:15px;margin:0;font-weight:600}
+  .meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-left:auto}
+  .muted{color:var(--muted)}
+  button{background:var(--chip);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+  button:hover{border-color:#3b4457}
+  button.danger{border-color:#5a2a2a;color:#ffb3b3}
+  input[type=text],input:not([type]){background:var(--chip);border:1px solid var(--line);border-radius:6px;color:var(--fg);padding:4px 8px;font-size:12px;min-width:180px}
+  .kpis{display:flex;gap:10px;flex-wrap:wrap;padding:12px 16px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 14px;min-width:96px}
+  .kpi b{display:block;font-size:18px;line-height:1.2}
+  .kpi span{color:var(--muted);font-size:11px}
+  main{padding:0 16px 40px}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:#12161c}
+  tr:last-child td{border-bottom:none}
+  tr.running{background:rgba(76,141,255,.06)}
+  tr.clickable{cursor:pointer}
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;border:1px solid transparent}
+  .pill.running{color:#cfe0ff;background:rgba(76,141,255,.18);border-color:rgba(76,141,255,.4)}
+  .pill.done{color:#c6f5e2;background:rgba(53,201,138,.16);border-color:rgba(53,201,138,.4)}
+  .pill.failed{color:#ffd0d0;background:rgba(255,93,93,.16);border-color:rgba(255,93,93,.4)}
+  .pill.cancelled{color:#d6d9e0;background:rgba(139,147,161,.16);border-color:rgba(139,147,161,.35)}
+  .task{max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sub{color:var(--muted);font-size:11px;margin-top:2px}
+  .err{color:#ff9a9a;font-size:11px;margin-top:2px}
+  .detail td{background:#12161c}
+  .detail pre{white-space:pre-wrap;margin:0;font-size:12px;color:#cbd2de}
+  code{background:var(--chip);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+  .empty{padding:28px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>DSH Crew 看板</h1>
+  <div class="meta">
+    <span class="muted" id="hub">—</span>
+    <span class="muted" id="updated">—</span>
+    <label class="muted"><input type="checkbox" id="auto" checked> 自动刷新(2s)</label>
+    <button id="refresh">立即刷新</button>
+    <input id="filter" placeholder="过滤：状态 / 模型 / 工作区 / 任务">
+  </div>
+</header>
+
+<section class="kpis" id="kpis"></section>
+
+<main>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:82px">状态</th>
+        <th>任务</th>
+        <th style="width:70px">档位</th>
+        <th style="width:200px">模型</th>
+        <th style="width:170px">工作区</th>
+        <th style="width:80px">耗时</th>
+        <th style="width:120px">tokens</th>
+        <th style="width:70px">操作</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div class="empty" id="empty" style="display:none">没有匹配的 worker 任务</div>
+</main>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let jobs = [];
+let expanded = new Set();
+let lastFetch = 0;
+
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const base = (p) => String(p ?? '').replace(/[\\/]+$/, '').split(/[\\/]/).pop() || p;
+
+function fmtDur(ms){
+  if (!isFinite(ms) || ms < 0) return '—';
+  const s = Math.floor(ms/1000);
+  if (s < 60) return s + 's';
+  const m = Math.floor(s/60), r = s%60;
+  if (m < 60) return m + 'm' + String(r).padStart(2,'0') + 's';
+  return Math.floor(m/60) + 'h' + String(m%60).padStart(2,'0') + 'm';
+}
+const fmtTok = (t) => {
+  const n = (t?.input ?? 0) + (t?.output ?? 0);
+  return n ? (n >= 1000 ? (n/1000).toFixed(1) + 'k' : String(n)) : '—';
+};
+
+function elapsedOf(j){
+  const start = Date.parse(j.startedAt || '');
+  if (!isFinite(start)) return '—';
+  const end = j.status === 'running' ? Date.now() : (Date.parse(j.endedAt || '') || Date.now());
+  return fmtDur(end - start);
+}
+
+function render(){
+  const q = $('#filter').value.trim().toLowerCase();
+  const list = jobs
+    .filter((j) => !q || [j.status, j.model, j.provider, j.cwd, j.task, j.tier].join(' ').toLowerCase().includes(q))
+    .sort((a,b) => (a.status === 'running' ? -1 : 0) - (b.status === 'running' ? -1 : 0)
+                 || (Date.parse(b.startedAt||0) - Date.parse(a.startedAt||0)));
+
+  const count = (s) => jobs.filter((j) => j.status === s).length;
+  const tokens = jobs.reduce((n,j) => n + (j.tokens?.input ?? 0) + (j.tokens?.output ?? 0), 0);
+  $('#kpis').innerHTML = [
+    ['运行中', count('running'), 'var(--run)'],
+    ['完成', count('done'), 'var(--ok)'],
+    ['失败', count('failed'), 'var(--bad)'],
+    ['已取消', count('cancelled'), 'var(--muted)'],
+    ['总 tokens', fmtTok({input: tokens}), 'var(--fg)'],
+  ].map(([k,v,c]) => '<div class="kpi"><b style="color:'+c+'">'+v+'</b><span>'+k+'</span></div>').join('');
+
+  $('#empty').style.display = list.length ? 'none' : 'block';
+  $('#rows').innerHTML = list.map((j) => {
+    const open = expanded.has(j.id);
+    const row = ''
+      + '<tr class="' + (j.status === 'running' ? 'running ' : '') + 'clickable" data-id="' + esc(j.id) + '">'
+      +   '<td><span class="pill ' + esc(j.status) + '">' + esc(j.status) + '</span></td>'
+      +   '<td><div class="task" title="' + esc(j.task) + '">' + esc(j.task) + '</div>'
+      +       (j.origin ? '<div class="sub">writer: ' + esc(j.origin) + '</div>' : '')
+      +       (j.error ? '<div class="err">' + esc(j.error) + '</div>' : '')
+      +   '</td>'
+      +   '<td>' + esc(j.tier) + '</td>'
+      +   '<td><div>' + esc(j.model) + '</div><div class="sub">' + esc(j.provider) + '</div></td>'
+      +   '<td title="' + esc(j.cwd) + '">' + esc(base(j.cwd)) + '</td>'
+      +   '<td data-elapsed="' + esc(j.id) + '">' + elapsedOf(j) + '</td>'
+      +   '<td>' + fmtTok(j.tokens) + '</td>'
+      +   '<td>' + (j.status === 'running' ? '<button class="danger" data-cancel="' + esc(j.id) + '">取消</button>' : '') + '</td>'
+      + '</tr>';
+    const detail = open ? '<tr class="detail"><td colspan="8"><pre>'
+      + 'id: ' + esc(j.id) + '\ncwd: ' + esc(j.cwd) + '\nstarted: ' + esc(j.startedAt)
+      + (j.endedAt ? '\nended: ' + esc(j.endedAt) : '')
+      + '\n\n' + esc(j.task) + '</pre></td></tr>' : '';
+    return row + detail;
+  }).join('');
+}
+
+async function load(){
+  try{
+    const r = await fetch('/api/jobs', { cache: 'no-store' });
+    const data = await r.json();
+    jobs = data.jobs ?? [];
+    lastFetch = Date.now();
+    $('#hub').textContent = data.hub ?? '';
+    $('#updated').textContent = '更新于 ' + new Date().toLocaleTimeString();
+    render();
+  }catch(e){
+    $('#updated').textContent = '拉取失败：' + e.message;
+  }
+}
+
+document.addEventListener('click', async (ev) => {
+  const cancelId = ev.target.getAttribute?.('data-cancel');
+  if (cancelId){
+    ev.stopPropagation();
+    if (!confirm('取消 ' + cancelId + ' ?')) return;
+    await fetch('/api/cancel', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ id: cancelId }) });
+    load();
+    return;
+  }
+  const tr = ev.target.closest?.('tr[data-id]');
+  if (tr){
+    const id = tr.getAttribute('data-id');
+    expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+    render();
+  }
+});
+
+$('#refresh').addEventListener('click', load);
+$('#filter').addEventListener('input', render);
+setInterval(() => { if ($('#auto').checked) load(); }, 2000);
+setInterval(() => {
+  document.querySelectorAll('[data-elapsed]').forEach((el) => {
+    const j = jobs.find((x) => x.id === el.getAttribute('data-elapsed'));
+    if (j) el.textContent = elapsedOf(j);
+  });
+}, 1000);
+load();
+</script>
+</body>
+</html>

@@ -24,7 +24,7 @@
 
 ### 6. [Agent相关](./agent/readme.md)
 
-> 记录 AI Agent 工具使用教程，目前包含 Codex skills 安装说明和 Gemini CLI 登录。
+> 记录 AI Agent 工具使用教程，目前包含 Codex skills 安装说明、Gemini CLI 登录，以及 DSH Crew 把任务派发给 DSH 执行的配置与排障。
 
 ### 7. [python相关](./python/readme.md)
 
